@@ -1,0 +1,137 @@
+/**
+ * CliffordMath — Clifford & Peter De Jong iterative strange attractors
+ * x(n+1) = sin(a·y) + c·cos(a·x)
+ * y(n+1) = sin(b·x) + d·cos(b·y)
+ * Each named preset is a specific (a,b,c,d) that produces a distinct shape.
+ * Millions of points are accumulated into a density histogram for rendering.
+ */
+export class CliffordMath {
+    constructor() {
+        this.presets = {
+            // ── Clifford attractors ──────────────────────────────────────
+            classic:    { type:'clifford', a:-1.4,  b: 1.6,  c: 1.0,  d: 0.7,  name:'Classic' },
+            butterfly:  { type:'clifford', a:-1.7,  b: 1.3,  c:-0.1,  d:-1.21, name:'Butterfly' },
+            galaxy:     { type:'clifford', a:-1.3,  b:-1.3,  c:-1.8,  d:-1.9,  name:'Galaxy' },
+            spiral:     { type:'clifford', a: 1.5,  b:-1.8,  c: 1.6,  d: 0.9,  name:'Spiral' },
+            web:        { type:'clifford', a: 1.7,  b: 1.7,  c: 0.6,  d: 1.2,  name:'Web' },
+            chaos:      { type:'clifford', a:-1.9,  b:-1.9,  c:-1.9,  d:-0.5,  name:'Chaos' },
+            feather:    { type:'clifford', a:-1.0,  b: 1.0,  c:-1.8,  d: 1.5,  name:'Feather' },
+            vortex:     { type:'clifford', a: 2.0,  b:-2.0,  c: 0.5,  d: 0.5,  name:'Vortex' },
+            lattice:    { type:'clifford', a: 1.6,  b:-0.6,  c:-1.0,  d: 0.6,  name:'Lattice' },
+            mandala:    { type:'clifford', a:-1.5,  b: 0.5,  c: 0.5,  d: 1.5,  name:'Mandala' },
+            // ── Peter De Jong attractors ─────────────────────────────────
+            dejong1:    { type:'dejong',   a: 1.4,  b:-2.3,  c: 2.4,  d:-2.1,  name:'De Jong I' },
+            dejong2:    { type:'dejong',   a:-2.7,  b:-0.09, c:-0.86, d:-2.2,  name:'De Jong II' },
+            dejong3:    { type:'dejong',   a: 1.5,  b: 0.2,  c: 0.9,  d: 1.5,  name:'De Jong III' },
+            dejong4:    { type:'dejong',   a:-0.7,  b: 1.7,  c:-0.9,  d: 2.6,  name:'De Jong IV' },
+            dejong5:    { type:'dejong',   a: 1.2,  b: 0.5,  c:-1.7,  d: 1.4,  name:'De Jong V' },
+        };
+
+        this._RES   = 600;  // histogram resolution
+        this._hist  = null;
+        this._maxDensity = 1;
+        this._iters = 0;
+        this._x = 0.1; this._y = 0.1;
+
+        this.energy = 0;
+        this.nx = 0.5; this.ny = 0.5;
+
+        this.setPreset('classic');
+    }
+
+    setPreset(name) {
+        const p = this.presets[name];
+        if (!p) return;
+        this._preset = p;
+        this._hist = new Float32Array(this._RES * this._RES);
+        this._maxDensity = 1;
+        this._iters = 0;
+        this._x = Math.random() * 0.2 - 0.1;
+        this._y = Math.random() * 0.2 - 0.1;
+    }
+
+    _iterate(n) {
+        const { a, b, c, d, type } = this._preset;
+        const R = this._RES;
+        const hist = this._hist;
+
+        let x = this._x, y = this._y;
+
+        for (let i = 0; i < n; i++) {
+            let nx, ny;
+            if (type === 'clifford') {
+                nx = Math.sin(a * y) + c * Math.cos(a * x);
+                ny = Math.sin(b * x) + d * Math.cos(b * y);
+            } else { // dejong
+                nx = Math.sin(a * y) - Math.cos(b * x);
+                ny = Math.sin(c * x) - Math.cos(d * y);
+            }
+            x = nx; y = ny;
+
+            // Map to histogram grid — attractor lives in [-3,3]×[-3,3]
+            const gx = Math.floor((x + 3) / 6 * R);
+            const gy = Math.floor((y + 3) / 6 * R);
+            if (gx >= 0 && gx < R && gy >= 0 && gy < R) {
+                const idx = gy * R + gx;
+                hist[idx]++;
+                if (hist[idx] > this._maxDensity) this._maxDensity = hist[idx];
+            }
+        }
+
+        this._x = x; this._y = y;
+        this._iters += n;
+
+        // Update normalized position for bus
+        this.nx = (x + 3) / 6;
+        this.ny = (y + 3) / 6;
+    }
+
+    addPulse(energy) {
+        this.energy = Math.min(1.0, this.energy + energy);
+    }
+
+    step(dt, complexity) {
+        this.energy *= 0.97;
+        // More iterations when complex/energetic
+        const itersPerFrame = Math.floor(30000 + complexity * 80000 + this.energy * 50000);
+        this._iterate(itersPerFrame);
+    }
+
+    getAudioModulation() {
+        return {
+            filterMod: this.nx,
+            lfoRate:   this.ny,
+            detuneMod: (this.nx - 0.5) * 0.8,
+        };
+    }
+
+    /**
+     * Render the density histogram as a glowing heatmap
+     */
+    render(ctx, w, h, hue) {
+        const R = this._RES;
+        const hist = this._hist;
+        const maxD = this._maxDensity;
+        if (!hist || maxD === 0) return;
+
+        // Draw point-by-point from histogram — sample for perf
+        const scaleX = w / R;
+        const scaleY = h / R;
+        const logMax = Math.log(maxD + 1);
+
+        for (let gy = 0; gy < R; gy += 2) {
+            for (let gx = 0; gx < R; gx += 2) {
+                const v = hist[gy * R + gx];
+                if (v === 0) continue;
+
+                const t = Math.log(v + 1) / logMax;          // log-scale density
+                const alpha = Math.pow(t, 0.45) * (0.7 + this.energy * 0.3);
+                const pointHue = (hue + t * 120) % 360;
+                const lightness = 40 + t * 50;
+
+                ctx.fillStyle = `hsla(${pointHue},85%,${lightness}%,${alpha})`;
+                ctx.fillRect(gx * scaleX, gy * scaleY, scaleX * 2 + 1, scaleY * 2 + 1);
+            }
+        }
+    }
+}
