@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lunar Modular — Synth Lab</title>
+    <link rel="stylesheet" href="./style.css">
+    <style>
+        /* Static noise — pure CSS, no external GIF dependency */
+        .boot-static {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0; z-index: 101; pointer-events: none;
+            background:
+                repeating-radial-gradient(circle at 17% 32%, rgba(255,255,255,0.03) 0px, transparent 1px),
+                repeating-radial-gradient(circle at 83% 67%, rgba(255,255,255,0.02) 0px, transparent 1px);
+            background-size: 3px 3px, 5px 5px;
+        }
+
+        /* Degauss flash — bright surge over the CRT turn-on */
+        .boot-flash {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 102; pointer-events: none; opacity: 0;
+            background: radial-gradient(ellipse at center, rgba(200,220,255,0.95), rgba(100,140,200,0.6), transparent 70%);
+        }
+
+        #boot-screen.degauss .boot-flash {
+            animation: degauss-flash 3s ease-out forwards;
+        }
+        #boot-screen.degauss .boot-static {
+            animation: static-surge 4s ease-out forwards;
+        }
+
+        @keyframes degauss-flash {
+            0%   { opacity: 1; filter: brightness(3); transform: scale(1.02); }
+            8%   { opacity: 0.9; filter: brightness(2); }
+            15%  { opacity: 0.6; filter: brightness(1.5); }
+            30%  { opacity: 0.3; filter: brightness(1); }
+            60%  { opacity: 0.05; }
+            100% { opacity: 0; }
+        }
+
+        @keyframes static-surge {
+            0%   { opacity: 0.7; }
+            10%  { opacity: 0.5; }
+            20%  { opacity: 0.8; }
+            35%  { opacity: 0.3; }
+            50%  { opacity: 0.6; }
+            70%  { opacity: 0.15; }
+            100% { opacity: 0; }
+        }
+
+        /* Boot screen fade-out */
+        #boot-screen.fading {
+            opacity: 0 !important;
+            pointer-events: none;
+            transition: opacity 1.5s ease-out !important;
+        }
+
+        /* LCD screens start "off" — dark until booted */
+        .screen-wrap canvas {
+            opacity: 0;
+            transition: opacity 0.8s ease-in;
+        }
+        body.booted .screen-wrap canvas {
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <div class="screen-bg" id="screen-bg"
+            style="position:absolute; top:0; left:0; width:100vw; bottom:max(40vh, 340px); z-index:0; overflow:visible; background:#000 url('./screen.png') center/100% 100% no-repeat; clip-path: inset(0 0 -100vh 0);">
+            <canvas id="vis-canvas"
+                style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:5;"></canvas>
+            <div
+                style="position:absolute; top:0; left:0; width:100%; height:100%; background:url('./screenoverlay.png') center/100% 100% no-repeat; pointer-events:none; opacity:1.0; z-index:5;">
+            </div>
+
+            <!-- ═══ BOOT SCREEN (RESTRICTED TO MONITOR) ═══ -->
+            <div id="boot-screen">
+                <div class="boot-flash"></div>
+                <div class="boot-static"></div>
+                <div class="crt-overlay"></div>
+                <div class="boot-content">
+                    <div class="boot-logo-container">
+                        <img src="./bootlogo.png" id="boot-logo" alt="Lunar Modular">
+                        <div class="logo-glow"></div>
+                    </div>
+                    <div class="boot-log" id="boot-log"></div>
+                </div>
+                <div class="boot-status">SYSTEM READY — CLICK TO INITIALIZE</div>
+            </div>
+        </div>
+
+        <div class="lunar-panel">
+
+            <header class="panel-header">
+                <div class="branding">
+                    <h1>LUNAR MODULAR</h1>
+                    <span class="subtitle">ANALOG MODELING LABORATORY</span>
+                </div>
+                <div class="header-center">
+                    <div class="mode-display" style="position: relative;">
+                        <!-- Subset anchored to the left of Visual -->
+                        <div id="sub-selector" class="mode-display" style="position: absolute; right: calc(100% + 20px); top: 0; visibility: hidden;">
+                            <div class="mode-lcd sub-lcd">
+                                <button id="btn-sub-prev" class="lcd-btn">◀</button>
+                                <div class="lcd-text">
+                                    <span id="sub-name">NONE</span>
+                                    <div id="sub-index">SUBSET</div>
+                                </div>
+                                <button id="btn-sub-next" class="lcd-btn">▶</button>
+                            </div>
+                        </div>
+
+                        <div class="mode-lcd vis-lcd">
+                            <button id="btn-vis-prev" class="lcd-btn">◀</button>
+                            <div class="lcd-text">
+                                <span id="vis-name">DEFAULT</span>
+                                <div id="vis-index">VISUAL</div>
+                            </div>
+                            <button id="btn-vis-next" class="lcd-btn">▶</button>
+                        </div>
+                    </div>
+
+                    <div class="header-actions">
+                        <button id="btn-randomize" class="action-btn-sq" title="Randomize Both">🎲</button>
+                        <button id="btn-showcase" class="action-btn-sq" title="Showcase (7s cycle)">∞</button>
+                    </div>
+
+                    <div class="mode-display">
+                        <div class="mode-lcd">
+                            <button id="btn-prev" class="lcd-btn">◀</button>
+                            <div class="lcd-text">
+                                <span id="mode-name">INIT</span>
+                                <div id="mode-index">0 / 0</div>
+                            </div>
+                            <button id="btn-next" class="lcd-btn">▶</button>
+                        </div>
+                        <button id="btn-random-synth" class="rnd-btn" title="Random Synth Patch">
+                            RND
+                        </button>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <button id="btn-flip" class="rnd-btn" title="Flip to Sequencer" style="margin:0;">FLIP</button>
+                    <div class="midi-indicator">MIDI <span id="midi-state">IDLE</span></div>
+                </div>
+            </header>
+
+            <!-- Hidden footer slider (still needed for JS sync) -->
+            <div style="display:none;">
+                <div id="slider-track">
+                    <div id="slider-fill"></div>
+                    <div id="slider-thumb"></div>
+                </div>
+                <span id="slider-value">50%</span>
+            </div>
+
+            <div class="modules-grid">
+
+                <!-- COL 1: DUAL OSCILLATOR + FM -->
+                <section class="module mod-osc">
+                    <div class="module-header">DUAL OSCILLATOR</div>
+                    <div class="module-content horizontal">
+                        <div class="osc-unit">
+                            <div class="screen-wrap"><canvas id="osc1-viz"></canvas>
+                                <div class="label">OSC 1</div>
+                            </div>
+                            <div class="knobs-row">
+                                <div class="hw-push no-led" data-cycle="p-osc1" style="margin-right:4px;">
+                                    <div class="push-housing">
+                                        <div class="push-btn"></div>
+                                    </div>
+                                    <span class="knob-label" id="p-osc1-label">SAW</span>
+                                </div>
+                                <div class="knob-group"><canvas class="hw-knob" width="46" height="46"
+                                        data-for="p-osc1Gain"></canvas><span class="knob-label">GAIN</span><input
+                                        type="range" id="p-osc1Gain" data-param="osc1Gain" min="0" max="1" step="0.01"
+                                        value="0.8" class="hw-hidden"></div>
+                                <div class="knob-group"><canvas class="hw-knob" width="46" height="46"
+                                        data-for="p-osc1Oct"></canvas><span class="knob-label">OCT</span><input
+                                        type="range" id="p-osc1Oct" data-param="osc1Oct" min="-2" max="2" step="1"
+                                        value="0" class="hw-hidden"></div>
+                                <div class="knob-group"><canvas class="hw-knob" width="46" height="46"
+                                        data-for="p-unison"></canvas><span class="knob-label">UNI</span><input
+                                        type="range" id="p-unison" data-param="unison" min="1" max="5" step="1"
+                                        value="1" class="hw-hidden"></div>
+                                <div class="knob-group"><canvas class="hw-knob" width="46" height="46"
+                                        data-for="p-spread"></canvas><span class="knob-label">SPRD</span><input
+                                        type="range" id="p-spread" data-param="spread" min="0" max="50" step="1"
+                                        value="0" class="hw-hidden"></div>
+                                <label class="hw-push" style="margin-left:auto;">
+                                    <input type="checkbox" id="p-osc1Mute" data-param="osc1Mute" class="hw-hidden">
+                                    <div class="push-housing">
+                                        <div class="push-led"></div>
+                                        <div class="push-btn"></div>
+                                    </div>
+                                    <span class="knob-label">MUTE</span>
+                                </label>
+                                <select id="p-osc1" data-param="osc1" class="hw-hidden">
+                                    <option value="sine">SIN</option>
+                                    <option value="triangle">TRI</option>
+                                    <option value="sawtooth" selected>SAW</option>
+                                    <option value="square">SQR</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="osc-unit">
+                            <div class="screen-wrap"><canvas id="osc2-viz"></canvas>
+                                <div class="label">OSC 2</div>
+                            </div>
+                            <div class="knobs-row">
+                                <div class="hw-push no-led" data-cycle="p-osc2" style="margin-right:4px;">
+                                    <div class="push-housing">
+                                        <div class="push-btn"></div>
+                                    </div>
+                                    <span class="knob-label" id="p-osc2-label">SIN</span>
+                                </div>
+                                <div class="knob-group"><canvas class="hw-knob" width="46" height="46"
+                                         data-for="p-osc2Gain"></canvas><span class="knob-label">GAIN</span><input
+                                         type="range" id="p-osc2Gain" data-param="osc2Gain" min="0" max="1" step="0.01"
+                                         value="0.25" class="hw-hidden"></div>
+                                <div class="knob-group"><canvas class="hw-knob" width="46" height="46"
+                                        data-for="p-osc2Oct"></canvas><span class="knob-label">OCT</span><input
+                                        type="range" id="p-osc2Oct" data-param="osc2Oct" min="-2" max="2" step="1"
+                                        value="0" class="hw-hidden"></div>
+                                <div class="knob-group"><canvas class="hw-knob" width="46" height="46"
+                                        data-for="p-osc2Detune"></canvas><span class="knob-label">DET</span><input
+                                        type="range" id="p-osc2Detune" data-param="osc2Detune" min="-50" max="50"
+                                        step="1" value="7" class="hw-hidden"></div>
+                                <div class="knob-group"><canvas class="hw-knob" width="46" height="46"
+                                        data-for="p-mix"></canvas><span class="knob-label">MIX</span><input type="range"
+                                        id="p-mix" data-param="mix" min="0" max="1" step="0.01" value="0"
+                                        class="hw-hidden"></div>
+                                <label class="hw-push" style="margin-left:auto;">
+                                    <input type="checkbox" id="p-osc2Mute" data-param="osc2Mute" class="hw-hidden">
+                                    <div class="push-housing">
+                                        <div class="push-led"></div>
+                                        <div class="push-btn"></div>
+                                    </div>
+                                    <span class="knob-label">MUTE</span>
+                                </label>
+                                <select id="p-osc2" data-param="osc2" class="hw-hidden">
+                                    <option value="sine" selected>SIN</option>
+                                    <option value="triangle">TRI</option>
+                                    <option value="sawtooth">SAW</option>
+                                    <option value="square">SQR</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="module mod-fm">
+                    <div class="module-header">FM SYNTH</div>
+                    <div class="module-content">
+                        <div class="screen-wrap small"><canvas id="env-fm" style="background:#0a0800;"></canvas></div>
+                        <div class="knobs-row">
+                            <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                    data-for="p-fmDepth"></canvas><span class="knob-label">DEPTH</span><input
+                                    type="range" id="p-fmDepth" data-param="fmDepth" min="0" max="20" step="0.1"
+                                    value="0" class="hw-hidden"></div>
+                            <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                    data-for="p-fmRatio"></canvas><span class="knob-label">RATIO</span><input
+                                    type="range" id="p-fmRatio" data-param="fmRatio" min="0" max="16" step="0.01"
+                                    value="1" class="hw-hidden"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- COL 2: NOISE + AMP ENV stacked -->
+                <div class="col-stack">
+                    <section class="module mod-noise">
+                        <div class="module-header">NOISE / SUB</div>
+                        <div class="module-content">
+                            <div class="screen-wrap small"><canvas id="noise-viz"></canvas></div>
+                            <div class="knobs-row">
+                                <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                        data-for="p-noise"></canvas><span class="knob-label">NSE</span><input
+                                        type="range" id="p-noise" data-param="noise" min="0" max="1" step="0.01"
+                                        value="0" class="hw-hidden"></div>
+                                <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                        data-for="p-sub"></canvas><span class="knob-label">SUB</span><input type="range"
+                                        id="p-sub" data-param="sub" min="0" max="1" step="0.01" value="0"
+                                        class="hw-hidden"></div>
+                                <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                        data-for="p-subOct"></canvas><span class="knob-label">OCT</span><input
+                                        type="range" id="p-subOct" data-param="subOct" min="-2" max="0" step="1"
+                                        value="-1" class="hw-hidden"></div>
+                                <select id="p-noiseType" data-param="noiseType">
+                                    <option value="white">WHT</option>
+                                    <option value="pink">PNK</option>
+                                </select>
+                            </div>
+                        </div>
+                    </section>
+                    <section class="module mod-aenv">
+                        <div class="module-header">AMP ENVELOPE</div>
+                        <div class="module-content">
+                            <div class="screen-wrap small"><canvas id="env-amp"></canvas></div>
+                            <div class="knobs-grid">
+                                <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                        data-for="p-a"></canvas><span class="knob-label">A</span><input type="range"
+                                        id="p-a" data-param="a" min="0.001" max="5" step="0.001" value="0.01"
+                                        class="hw-hidden"></div>
+                                <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                        data-for="p-d"></canvas><span class="knob-label">D</span><input type="range"
+                                        id="p-d" data-param="d" min="0.01" max="5" step="0.01" value="0.3"
+                                        class="hw-hidden"></div>
+                                <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                        data-for="p-s"></canvas><span class="knob-label">S</span><input type="range"
+                                        id="p-s" data-param="s" min="0" max="1" step="0.01" value="0.5"
+                                        class="hw-hidden"></div>
+                                <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                        data-for="p-r"></canvas><span class="knob-label">R</span><input type="range"
+                                        id="p-r" data-param="r" min="0.01" max="8" step="0.01" value="1"
+                                        class="hw-hidden"></div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- COL 3: LFO + DUAL ENV stacked -->
+                <div class="col-stack">
+                    <section class="module mod-lfo">
+                        <div class="module-header">LFO</div>
+                        <div class="module-content">
+                            <div class="screen-wrap small"><canvas id="lfo-viz"></canvas></div>
+                            <select id="p-lfoShape" data-param="lfoShape">
+                                <option value="sine">SIN</option>
+                                <option value="triangle">TRI</option>
+                                <option value="sawtooth">SAW</option>
+                                <option value="square">SQR</option>
+                            </select>
+                            <div class="knobs-grid">
+                                <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                        data-for="p-lfoRate"></canvas><span class="knob-label">RATE</span><input
+                                        type="range" id="p-lfoRate" data-param="lfoRate" min="0" max="25" step="0.05"
+                                        value="0" class="hw-hidden"></div>
+                                <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                        data-for="p-lfoDepth"></canvas><span class="knob-label">FLT</span><input
+                                        type="range" id="p-lfoDepth" data-param="lfoDepth" min="0" max="2000" step="10"
+                                        value="0" class="hw-hidden"></div>
+                                <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                        data-for="p-lfoPitchDepth"></canvas><span class="knob-label">PIT</span><input
+                                        type="range" id="p-lfoPitchDepth" data-param="lfoPitchDepth" min="0" max="200"
+                                        step="1" value="0" class="hw-hidden"></div>
+                                <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                        data-for="p-lfoAmp"></canvas><span class="knob-label">AMP</span><input
+                                        type="range" id="p-lfoAmp" data-param="lfoAmp" min="0" max="1" step="0.01"
+                                        value="0" class="hw-hidden"></div>
+                            </div>
+                        </div>
+                    </section>
+                    <section class="module mod-denv">
+                        <div class="module-header">DUAL ENVELOPE</div>
+                        <div class="module-content horizontal">
+                            <div class="env-unit">
+                                <div class="screen-wrap small"><canvas id="env-1"></canvas></div>
+                                <div class="knobs-grid">
+                                    <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                            data-for="p-e1A"></canvas><span class="knob-label">A</span><input
+                                            type="range" id="p-e1A" data-param="e1A" min="0.001" max="5" step="0.001"
+                                            value="0.01" class="hw-hidden"></div>
+                                    <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                            data-for="p-e1D"></canvas><span class="knob-label">D</span><input
+                                            type="range" id="p-e1D" data-param="e1D" min="0.01" max="5" step="0.01"
+                                            value="0.3" class="hw-hidden"></div>
+                                    <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                            data-for="p-e1S"></canvas><span class="knob-label">S</span><input
+                                            type="range" id="p-e1S" data-param="e1S" min="0" max="1" step="0.01"
+                                            value="0.5" class="hw-hidden"></div>
+                                    <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                            data-for="p-e1R"></canvas><span class="knob-label">R</span><input
+                                            type="range" id="p-e1R" data-param="e1R" min="0.01" max="8" step="0.01"
+                                            value="1" class="hw-hidden"></div>
+                                </div>
+                            </div>
+                            <div class="env-unit">
+                                <div class="screen-wrap small"><canvas id="env-2"></canvas></div>
+                                <div style="display:flex; align-items:center; gap:6px;">
+                                    <div class="knobs-grid" style="flex:1;">
+                                        <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                                data-for="p-e2A"></canvas><span class="knob-label">A</span><input
+                                                type="range" id="p-e2A" data-param="e2A" min="0.001" max="5" step="0.001"
+                                                value="0.01" class="hw-hidden"></div>
+                                        <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                                data-for="p-e2D"></canvas><span class="knob-label">D</span><input
+                                                type="range" id="p-e2D" data-param="e2D" min="0.01" max="5" step="0.01"
+                                                value="0.3" class="hw-hidden"></div>
+                                        <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                                data-for="p-e2S"></canvas><span class="knob-label">S</span><input
+                                                type="range" id="p-e2S" data-param="e2S" min="0" max="1" step="0.01"
+                                                value="0.5" class="hw-hidden"></div>
+                                        <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                                data-for="p-e2R"></canvas><span class="knob-label">R</span><input
+                                                type="range" id="p-e2R" data-param="e2R" min="0.01" max="8" step="0.01"
+                                                value="1" class="hw-hidden"></div>
+                                    </div>
+                                    <label class="hw-push">
+                                        <input type="checkbox" id="p-e2LinDecay" data-param="e2LinDecay" class="hw-hidden">
+                                        <div class="push-housing">
+                                            <div class="push-led"></div>
+                                            <div class="push-btn"></div>
+                                        </div>
+                                        <span class="knob-label">LIN</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- COL 4: FILTER ENV -->
+                <section class="module mod-fenv">
+                    <div class="module-header">FILTER ENV</div>
+                    <div class="module-content horizontal">
+                        <div class="fenv-main">
+                            <div class="screen-wrap small"><canvas id="env-flt"></canvas></div>
+                            <div class="knobs-grid">
+                                <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                        data-for="p-fA"></canvas><span class="knob-label">A</span><input type="range"
+                                        id="p-fA" data-param="fA" min="0.001" max="3" step="0.001" value="0.001"
+                                        class="hw-hidden"></div>
+                                <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                        data-for="p-fD"></canvas><span class="knob-label">D</span><input type="range"
+                                        id="p-fD" data-param="fD" min="0.01" max="5" step="0.01" value="0.3"
+                                        class="hw-hidden"></div>
+                                <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                        data-for="p-fS"></canvas><span class="knob-label">S</span><input type="range"
+                                        id="p-fS" data-param="fS" min="0" max="1" step="0.01" value="0"
+                                        class="hw-hidden"></div>
+                                <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                        data-for="p-fR"></canvas><span class="knob-label">R</span><input type="range"
+                                        id="p-fR" data-param="fR" min="0.01" max="5" step="0.01" value="0.3"
+                                        class="hw-hidden"></div>
+                            </div>
+                        </div>
+                        <div class="fenv-extra">
+                            <div class="knob-group mini" style="align-self:flex-start; margin-top:6px;">
+                                <canvas class="hw-knob" width="44" height="44" data-for="p-fEnv"></canvas><span
+                                    class="knob-label">AMT</span><input type="range" id="p-fEnv" data-param="fEnv"
+                                    min="-5000" max="5000" step="10" value="0" class="hw-hidden">
+                            </div>
+                            <div class="knob-group mini" style="align-self:flex-end; margin-top:-6px;">
+                                <canvas class="hw-knob" width="44" height="44" data-for="p-pEnv"></canvas><span
+                                    class="knob-label">P.ENV</span><input type="range" id="p-pEnv" data-param="pEnv"
+                                    min="-24" max="24" step="0.5" value="0" class="hw-hidden">
+                            </div>
+                            <div class="knob-group mini" style="align-self:flex-start; margin-top:-6px;">
+                                <canvas class="hw-knob" width="44" height="44" data-for="p-fKeyFollow"></canvas><span
+                                    class="knob-label">KEY TRK</span><input type="range" id="p-fKeyFollow"
+                                    data-param="fKeyFollow" min="0" max="1" step="0.01" value="0" class="hw-hidden">
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- COL 5: VCF FILTER -->
+                <section class="module mod-vcf">
+                    <div class="module-header">VCF FILTER</div>
+                    <div class="module-content">
+                        <div class="screen-wrap"><canvas id="filter-viz"></canvas></div>
+                        <div class="knobs-row">
+                            <select id="p-fType" data-param="fType">
+                                <option value="lp">LP</option>
+                                <option value="hp">HP</option>
+                                <option value="bp">BP</option>
+                            </select>
+                            <div class="knob-group"><canvas class="hw-knob" width="46" height="46"
+                                    data-for="p-fFreq"></canvas><span class="knob-label">FREQ</span><input type="range"
+                                    id="p-fFreq" data-param="fFreq" min="20" max="18000" step="10" value="2000"
+                                    class="hw-hidden"></div>
+                            <div class="knob-group"><canvas class="hw-knob" width="46" height="46"
+                                    data-for="p-fRes"></canvas><span class="knob-label">RES</span><input type="range"
+                                    id="p-fRes" data-param="fRes" min="0" max="20" step="0.1" value="1"
+                                    class="hw-hidden"></div>
+                            <label class="hw-push">
+                                <input type="checkbox" id="p-fBypass" data-param="fBypass" class="hw-hidden">
+                                <div class="push-housing">
+                                    <div class="push-led"></div>
+                                    <div class="push-btn"></div>
+                                </div>
+                                <span class="knob-label">BYP</span>
+                            </label>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- COL 6: FX -->
+                <section class="module mod-fx">
+                    <div class="module-header">EFFECTS</div>
+                    <div class="module-content horizontal">
+                        <div
+                            style="flex:3; display:flex; flex-direction:column; gap:2px; padding-left:4px; padding-top:2px;">
+                            <span class="fx-label">DLY</span>
+                            <div class="fx-row">
+                                <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                        data-for="p-delay"></canvas><span class="knob-label">MIX</span><input
+                                        type="range" id="p-delay" data-param="delay" min="0" max="0.5" step="0.01"
+                                        value="0" class="hw-hidden"></div>
+                                <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                        data-for="p-delayTime"></canvas><span class="knob-label">TIME</span><input
+                                        type="range" id="p-delayTime" data-param="delayTime" min="0" max="1.5"
+                                        step="0.01" value="0.2" class="hw-hidden"></div>
+                                <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                        data-for="p-delayFb"></canvas><span class="knob-label">FB</span><input
+                                        type="range" id="p-delayFb" data-param="delayFb" min="0" max="0.95" step="0.01"
+                                        value="0.3" class="hw-hidden"></div>
+                                <label class="hw-push">
+                                    <input type="checkbox" id="p-echoBypass" data-param="echoBypass" class="hw-hidden">
+                                    <div class="push-housing">
+                                        <div class="push-led"></div>
+                                        <div class="push-btn"></div>
+                                    </div>
+                                    <span class="knob-label">BYP</span>
+                                </label>
+                            </div>
+                            <span class="fx-label" style="margin-top:4px;">RVB</span>
+                            <div class="fx-row">
+                                <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                        data-for="p-reverb"></canvas><span class="knob-label">MIX</span><input
+                                        type="range" id="p-reverb" data-param="reverb" min="0" max="1" step="0.01"
+                                        value="0.1" class="hw-hidden"></div>
+                                <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                        data-for="p-reverbSize"></canvas><span class="knob-label">SIZE</span><input
+                                        type="range" id="p-reverbSize" data-param="reverbSize" min="0" max="7"
+                                        step="0.1" value="3" class="hw-hidden"></div>
+                                <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                        data-for="p-reverbDamp"></canvas><span class="knob-label">DMP</span><input
+                                        type="range" id="p-reverbDamp" data-param="reverbDamp" min="500" max="5000"
+                                        step="100" value="2400" class="hw-hidden"></div>
+                                <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                        data-for="p-reverbFb"></canvas><span class="knob-label">FB</span><input
+                                        type="range" id="p-reverbFb" data-param="reverbFb" min="0" max="0.8" step="0.01"
+                                        value="0.4" class="hw-hidden"></div>
+                                <label class="hw-push">
+                                    <input type="checkbox" id="p-reverbBypass" data-param="reverbBypass" class="hw-hidden">
+                                    <div class="push-housing">
+                                        <div class="push-led"></div>
+                                        <div class="push-btn"></div>
+                                    </div>
+                                    <span class="knob-label">BYP</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div
+                            style="flex:2; display:flex; flex-direction:column; gap:2px; border-left:1px solid rgba(224,128,24,0.12); padding-left:4px; padding-right:4px; padding-top:2px;">
+                            <span class="fx-label" style="text-align:right;">DST</span>
+                            <div class="fx-row" style="flex-direction:row-reverse;">
+                                <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                        data-for="p-dist"></canvas><span class="knob-label">DRV</span><input
+                                        type="range" id="p-dist" data-param="dist" min="0" max="1" step="0.01" value="0"
+                                        class="hw-hidden"></div>
+                                <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                        data-for="p-distMix"></canvas><span class="knob-label">MIX</span><input
+                                        type="range" id="p-distMix" data-param="distMix" min="0" max="1" step="0.01"
+                                        value="1" class="hw-hidden"></div>
+                                <select id="p-distType" data-param="distType" style="width:40px;">
+                                    <option value="soft">SFT</option>
+                                    <option value="fold">FLD</option>
+                                    <option value="clip">CLP</option>
+                                </select>
+                                <label class="hw-push">
+                                    <input type="checkbox" id="p-distBypass" data-param="distBypass" class="hw-hidden">
+                                    <div class="push-housing">
+                                        <div class="push-led"></div>
+                                        <div class="push-btn"></div>
+                                    </div>
+                                    <span class="knob-label">BYP</span>
+                                </label>
+                            </div>
+                            <span class="fx-label" style="text-align:right; margin-top:4px;">CHR</span>
+                            <div class="fx-row" style="flex-direction:row-reverse;">
+                                <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                        data-for="p-chorus"></canvas><span class="knob-label">MIX</span><input
+                                        type="range" id="p-chorus" data-param="chorus" min="0" max="1" step="0.01"
+                                        value="0" class="hw-hidden"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- STEREO IMAGER -->
+                <section class="module mod-imager">
+                    <div class="module-header">STEREO IMAGER</div>
+                    <div class="module-content">
+                        <div class="screen-wrap small"><canvas id="stereo-viz"></canvas></div>
+                        <div class="knobs-row">
+                            <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                    data-for="p-stereoWidth"></canvas><span class="knob-label">WIDTH</span><input
+                                    type="range" id="p-stereoWidth" data-param="stereoWidth" min="0" max="2" step="0.01"
+                                    value="1" class="hw-hidden"></div>
+                            <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                    data-for="p-pan"></canvas><span class="knob-label">PAN</span><input type="range"
+                                    id="p-pan" data-param="pan" min="-1" max="1" step="0.01" value="0"
+                                    class="hw-hidden"></div>
+                            <div class="knob-group mini"><canvas class="hw-knob" width="46" height="46"
+                                    data-for="p-bassMono"></canvas><span class="knob-label">B.MONO</span><input
+                                    type="range" id="p-bassMono" data-param="bassMono" min="0" max="500" step="5"
+                                    value="0" class="hw-hidden"></div>
+                            <label class="hw-push">
+                                <input type="checkbox" id="p-imgBypass" data-param="imgBypass" class="hw-hidden">
+                                <div class="push-housing">
+                                    <div class="push-led"></div>
+                                    <div class="push-btn"></div>
+                                </div>
+                                <span class="knob-label">BYP</span>
+                            </label>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- CONTROL -->
+                <section class="module mod-ctrl">
+                    <div class="module-header" style="width:100%; position:relative;">CONTROL
+                        <div id="midi-drop" class="library-btn" title="Drop MIDI file here"><span>LIBRARY</span><input type="file" id="midi-file" hidden></div>
+                    </div>
+                    <div class="module-content">
+                        <div style="display:flex; align-items:center; gap:6px; padding-bottom:6px; border-bottom:1px solid rgba(224,128,24,0.12);">
+                            <div class="transport-group">
+                                <button id="btn-play" class="transport-btn">▶</button>
+                                <button id="btn-stop" class="transport-btn">■</button>
+                            </div>
+                            <select id="track-select" style="flex:1;">
+                                <option value="">SELECT TRACK...</option>
+                                <option value="pachelbel_canon">CANON IN D</option>
+                                <option value="unforgiven">THE UNFORGIVEN</option>
+                                <option value="eleanor">ELEANOR RIGBY</option>
+                                <option value="strobe">STROBE</option>
+                                <option value="tubular_bells">TUBULAR BELLS</option>
+                                <option value="montagues_capulets">MONTAGUES &amp; CAPULETS</option>
+                                <option value="chariots_of_fire">CHARIOTS OF FIRE</option>
+                            </select>
+                        </div>
+                        <div
+                            style="display:flex; align-items:center; gap:6px; padding:3px 0; border-bottom:1px solid rgba(224,128,24,0.12); height:2px; opacity:0; pointer-events:none;">
+                        </div>
+                        <div
+                            style="display:flex; align-items:center; gap:5px; padding-top:3px;">
+                            <button id="btn-polyrhythm" class="transport-btn action-btn" title="Polyrhythm Setup" style="display:none;">🥁</button>
+                            <button id="btn-pend-reset" class="transport-btn action-btn" title="Reset Pendulums" style="display:none;">🔄</button>
+                            <div class="knob-group" style="display:none; flex:1; align-items:center; justify-content:center;">
+                                <canvas id="ctrl-dial" width="80" height="80" style="cursor:ns-resize;"></canvas>
+                                <span class="knob-label" style="margin-top:-5px;">BRAIN DEPTH</span>
+                            </div>
+                        </div>
+                        <!-- Pendulum Controls -->
+                        <div style="display:flex; align-items:center; gap:5px; padding:3px 0; border-bottom:1px solid rgba(224,128,24,0.12); width:100%;">
+                            <button id="btn-pendulum" class="rnd-btn" title="Toggle Pendulum Mode" style="padding:0 8px; margin:0; font-size:0.45rem; min-width:60px;">PENDULUM</button>
+                            <select id="pend-scale" title="Scale" style="width:75px;">
+                                <option value="chromatic">CHROM</option>
+                                <option value="major" selected>MAJOR</option>
+                                <option value="minor">MINOR</option>
+                                <option value="pentatonic">PENTA</option>
+                                <option value="blues">BLUES</option>
+                                <option value="dorian">DORIAN</option>
+                                <option value="mixolydian">MIXO</option>
+                                <option value="harmonic_minor">H.MIN</option>
+                                <option value="whole_tone">WHOLE</option>
+                            </select>
+                            <div class="hw-num-box">
+                                <input type="number" id="pend-angle" min="10" max="80" step="1" value="46">
+                                <span class="knob-label">ANG°</span>
+                            </div>
+                            <div class="hw-num-box">
+                                <input type="number" id="pend-count" min="3" max="25" step="1" value="15">
+                                <span class="knob-label">NUM</span>
+                            </div>
+                            <button id="btn-pend-reset" class="transport-btn action-btn" title="Reset Pendulums" style="display:none;">↺</button>
+                        </div>
+                        <!-- Polyrhythm -->
+                        <div style="display:flex; align-items:center; gap:6px; padding:3px 0;">
+                            <button id="btn-polyrhythm" class="hw-btn mini" title="Polyrhythm Training" style="display:none;">POLY</button>
+                            <div id="poly-setup" class="poly-setup-overlay hidden">
+                                <div class="poly-setup-box">
+                                    <div class="poly-setup-inner">
+                                        <h3>POLYRHYTHM SETUP</h3>
+                                        <div class="setup-row">
+                                            <span>BPM</span>
+                                            <input type="number" id="poly-bpm" value="120" min="40" max="240">
+                                        </div>
+                                        <button id="btn-poly-start" class="hw-btn">START</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- BRAIN FADER (Vertical) -->
+                <section class="module mod-perf">
+                    <div class="module-header">BRAIN</div>
+                    <div class="module-content">
+                        <div class="ctrl-slider-wrap">
+                            <div class="ctrl-slider-label"><span></span><span id="ctrl-slider-val">50%</span></div>
+                            <div class="ctrl-slider-track" id="ctrl-slider-track">
+                                <div class="slider-ticks">
+                                    <div class="tick"></div>
+                                    <div class="tick"></div>
+                                    <div class="tick"></div>
+                                    <div class="tick"></div>
+                                    <div class="tick"></div>
+                                    <div class="tick"></div>
+                                    <div class="tick"></div>
+                                    <div class="tick"></div>
+                                    <div class="tick"></div>
+                                    <div class="tick"></div>
+                                    <div class="tick"></div>
+                                </div>
+                                <div class="ctrl-slider-fill" id="ctrl-slider-fill"></div>
+                                <div class="ctrl-slider-thumb" id="ctrl-slider-thumb"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- COL 7: MASTER (hidden) -->
+                <section class="module mod-master">
+                    <div class="module-header">MASTER</div>
+                    <div class="module-content">
+                        <div class="screen-wrap"><canvas id="viz"></canvas></div>
+                        <div class="knob-group"><canvas class="hw-knob" width="68" height="68"
+                                data-for="p-mainGain"></canvas><span class="knob-label">VOLUME</span><input type="range"
+                                id="p-mainGain" data-param="mainGain" min="0" max="1" step="0.01" value="0.5"
+                                class="hw-hidden"></div>
+                    </div>
+                </section>
+
+                <!-- TR-808 COMBINED (Full Sequencer View) -->
+                <section class="module mod-tr808" style="display:none;">
+                    <div class="module-header">TR-808 RHYTHM COMPOSER</div>
+                    <div class="module-content tr808-combined">
+                        <!-- TOP ROW: Volume + Instrument Mixer + Tempo -->
+                        <div class="tr808-top-row">
+                            <div class="tr808-tempo-wrap">
+                                <div class="tr-tempo-dial-wrap">
+                                    <div class="tr-tempo-ticks">
+                                        <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
+                                    </div>
+                                    <div class="tr-tempo-dial hw-knob" data-for="tr-tempo-val">
+                                        <div class="tr-dial-indicator"></div>
+                                        <div class="tr-bpm-display">120</div>
+                                    </div>
+                                    <input type="range" id="tr-tempo-val" min="40" max="240" step="1" value="120" hidden>
+                                    <span class="tr-label">TEMPO</span>
+                                </div>
+                                <div class="tr-shuffle-wrap">
+                                    <canvas class="hw-knob" width="54" height="54" data-for="tr-shuffle"></canvas>
+                                    <input type="range" id="tr-shuffle" min="0" max="1" step="0.01" value="0" hidden>
+                                    <span class="tr-label">SHUFFLE</span>
+                                </div>
+                            </div>
+                            <div class="tr-mixer-content">
+                                <div class="tr-mixer-row">
+                                    <div class="tr-mix-col" data-inst="accent">
+                                        <div class="tr-knobs">
+                                            <span class="l">LEVEL</span>
+                                            <canvas class="hw-knob" width="46" height="46" data-for="tr-acc-level"></canvas>
+                                            <input type="range" id="tr-acc-level" min="0" max="1" step="0.01" value="0.5" hidden>
+                                        </div>
+                                        <div class="tr-controls">
+                                            <div class="b inst-btn">ACCENT</div>
+                                        </div>
+                                    </div>
+                                    <div class="tr-mix-col active" data-inst="bd">
+                                        <div class="tr-knobs">
+                                            <span class="l">LEVEL</span><canvas class="hw-knob" width="46" height="46" data-for="tr-bd-level"></canvas>
+                                            <span class="l">TONE</span><canvas class="hw-knob" width="46" height="46" data-for="tr-bd-tone"></canvas>
+                                            <span class="l">DECAY</span><canvas class="hw-knob" width="46" height="46" data-for="tr-bd-decay"></canvas>
+                                            <input type="range" id="tr-bd-level" min="0" max="1" step="0.01" value="0.8" hidden>
+                                            <input type="range" id="tr-bd-tone" min="0" max="1" step="0.01" value="0.5" hidden>
+                                            <input type="range" id="tr-bd-decay" min="0" max="1" step="0.01" value="0.5" hidden>
+                                        </div>
+                                        <div class="tr-controls">
+                                            <div class="b inst-btn">BASS DRUM</div>
+                                        </div>
+                                    </div>
+                                    <div class="tr-mix-col" data-inst="sd">
+                                        <div class="tr-knobs">
+                                            <span class="l">LEVEL</span><canvas class="hw-knob" width="46" height="46" data-for="tr-sd-level"></canvas>
+                                            <span class="l">TONE</span><canvas class="hw-knob" width="46" height="46" data-for="tr-sd-tone"></canvas>
+                                            <span class="l">SNAPPY</span><canvas class="hw-knob" width="46" height="46" data-for="tr-sd-snappy"></canvas>
+                                            <input type="range" id="tr-sd-level" min="0" max="1" step="0.01" value="0.7" hidden>
+                                            <input type="range" id="tr-sd-tone" min="0" max="1" step="0.01" value="0.5" hidden>
+                                            <input type="range" id="tr-sd-snappy" min="0" max="1" step="0.01" value="0.5" hidden>
+                                        </div>
+                                        <div class="tr-controls">
+                                            <div class="b inst-btn">SNARE DRUM</div>
+                                        </div>
+                                    </div>
+                                    <div class="tr-mix-col" data-inst="lt">
+                                        <div class="tr-knobs">
+                                            <span class="l">LEVEL</span><canvas class="hw-knob" width="46" height="46" data-for="tr-lt-level"></canvas>
+                                            <span class="l">TUNING</span><canvas class="hw-knob" width="46" height="46" data-for="tr-lt-tune"></canvas>
+                                            <input type="range" id="tr-lt-level" min="0" max="1" step="0.01" value="0.6" hidden>
+                                            <input type="range" id="tr-lt-tune" min="0" max="1" step="0.01" value="0.5" hidden>
+                                        </div>
+                                        <div class="tr-controls">
+                                            <div class="tr-inst-toggle">
+                                                <span class="t-l">LOW CONGO</span>
+                                                <input type="checkbox" class="tr-variant-toggle" data-inst="lt" checked hidden>
+                                                <div class="toggle-slider"></div>
+                                            </div>
+                                            <div class="b inst-btn">LOW TOM</div>
+                                        </div>
+                                    </div>
+                                    <div class="tr-mix-col" data-inst="mt">
+                                        <div class="tr-knobs">
+                                            <span class="l">LEVEL</span><canvas class="hw-knob" width="46" height="46" data-for="tr-mt-level"></canvas>
+                                            <span class="l">TUNING</span><canvas class="hw-knob" width="46" height="46" data-for="tr-mt-tune"></canvas>
+                                            <input type="range" id="tr-mt-level" min="0" max="1" step="0.01" value="0.6" hidden>
+                                            <input type="range" id="tr-mt-tune" min="0" max="1" step="0.01" value="0.5" hidden>
+                                        </div>
+                                        <div class="tr-controls">
+                                            <div class="tr-inst-toggle">
+                                                <span class="t-l">MID CONGO</span>
+                                                <input type="checkbox" class="tr-variant-toggle" data-inst="mt" checked hidden>
+                                                <div class="toggle-slider"></div>
+                                            </div>
+                                            <div class="b inst-btn">MID TOM</div>
+                                        </div>
+                                    </div>
+                                    <div class="tr-mix-col" data-inst="ht">
+                                        <div class="tr-knobs">
+                                            <span class="l">LEVEL</span><canvas class="hw-knob" width="46" height="46" data-for="tr-ht-level"></canvas>
+                                            <span class="l">TUNING</span><canvas class="hw-knob" width="46" height="46" data-for="tr-ht-tune"></canvas>
+                                            <input type="range" id="tr-ht-level" min="0" max="1" step="0.01" value="0.6" hidden>
+                                            <input type="range" id="tr-ht-tune" min="0" max="1" step="0.01" value="0.5" hidden>
+                                        </div>
+                                        <div class="tr-controls">
+                                            <div class="tr-inst-toggle">
+                                                <span class="t-l">HI CONGO</span>
+                                                <input type="checkbox" class="tr-variant-toggle" data-inst="ht" checked hidden>
+                                                <div class="toggle-slider"></div>
+                                            </div>
+                                            <div class="b inst-btn">HI TOM</div>
+                                        </div>
+                                    </div>
+                                    <div class="tr-mix-col" data-inst="rs">
+                                        <div class="tr-knobs">
+                                            <span class="l">LEVEL</span><canvas class="hw-knob" width="46" height="46" data-for="tr-rs-level"></canvas>
+                                            <input type="range" id="tr-rs-level" min="0" max="1" step="0.01" value="0.6" hidden>
+                                        </div>
+                                        <div class="tr-controls">
+                                            <div class="tr-inst-toggle">
+                                                <span class="t-l">CLAVES</span>
+                                                <input type="checkbox" class="tr-variant-toggle" data-inst="rs" checked hidden>
+                                                <div class="toggle-slider"></div>
+                                            </div>
+                                            <div class="b inst-btn">RIM SHOT</div>
+                                        </div>
+                                    </div>
+                                    <div class="tr-mix-col" data-inst="cp">
+                                        <div class="tr-knobs">
+                                            <span class="l">LEVEL</span><canvas class="hw-knob" width="46" height="46" data-for="tr-cp-level"></canvas>
+                                            <input type="range" id="tr-cp-level" min="0" max="1" step="0.01" value="0.6" hidden>
+                                        </div>
+                                        <div class="tr-controls">
+                                            <div class="tr-inst-toggle">
+                                                <span class="t-l">MARACAS</span>
+                                                <input type="checkbox" class="tr-variant-toggle" data-inst="cp" checked hidden>
+                                                <div class="toggle-slider"></div>
+                                            </div>
+                                            <div class="b inst-btn">HAND CLAP</div>
+                                        </div>
+                                    </div>
+                                    <div class="tr-mix-col" data-inst="cb">
+                                        <div class="tr-knobs">
+                                            <span class="l">LEVEL</span><canvas class="hw-knob" width="46" height="46" data-for="tr-cb-level"></canvas>
+                                            <input type="range" id="tr-cb-level" min="0" max="1" step="0.01" value="0.6" hidden>
+                                        </div>
+                                        <div class="tr-controls">
+                                            <div class="b inst-btn">COW BELL</div>
+                                        </div>
+                                    </div>
+                                    <div class="tr-mix-col" data-inst="cy">
+                                        <div class="tr-knobs">
+                                            <span class="l">LEVEL</span><canvas class="hw-knob" width="46" height="46" data-for="tr-cy-level"></canvas>
+                                            <span class="l">TONE</span><canvas class="hw-knob" width="46" height="46" data-for="tr-cy-tone"></canvas>
+                                            <span class="l">DECAY</span><canvas class="hw-knob" width="46" height="46" data-for="tr-cy-decay"></canvas>
+                                            <input type="range" id="tr-cy-level" min="0" max="1" step="0.01" value="0.7" hidden>
+                                            <input type="range" id="tr-cy-tone" min="0" max="1" step="0.01" value="0.5" hidden>
+                                            <input type="range" id="tr-cy-decay" min="0" max="1" step="0.01" value="0.5" hidden>
+                                        </div>
+                                        <div class="tr-controls">
+                                            <div class="b inst-btn">CYMBAL</div>
+                                        </div>
+                                    </div>
+                                    <div class="tr-mix-col" data-inst="oh">
+                                        <div class="tr-knobs">
+                                            <span class="l">LEVEL</span><canvas class="hw-knob" width="46" height="46" data-for="tr-oh-level"></canvas>
+                                            <span class="l">DECAY</span><canvas class="hw-knob" width="46" height="46" data-for="tr-oh-decay"></canvas>
+                                            <input type="range" id="tr-oh-level" min="0" max="1" step="0.01" value="0.7" hidden>
+                                            <input type="range" id="tr-oh-decay" min="0" max="1" step="0.01" value="0.5" hidden>
+                                        </div>
+                                        <div class="tr-controls">
+                                            <div class="b inst-btn">OPEN HIHAT</div>
+                                        </div>
+                                    </div>
+                                    <div class="tr-mix-col" data-inst="ch">
+                                        <div class="tr-knobs">
+                                            <span class="l">LEVEL</span><canvas class="hw-knob" width="46" height="46" data-for="tr-ch-level"></canvas>
+                                            <input type="range" id="tr-ch-level" min="0" max="1" step="0.01" value="0.7" hidden>
+                                        </div>
+                                        <div class="tr-controls">
+                                            <div class="b inst-btn">CLSD HIHAT</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="tr808-vol-wrap">
+                                <canvas class="hw-knob" width="68" height="68" data-for="p-mainGain"></canvas>
+                                <span class="knob-label">VOLUME</span>
+                            </div>
+                        </div>
+                        <!-- BOTTOM ROW: Step Sequencer -->
+                        <div class="tr808-bottom-row">
+                            <div class="tr-col-left">
+                                <button id="tr-start-stop" class="tr-big-btn gold">START<br>STOP</button>
+                            </div>
+                            <div class="tr-col-main">
+                                <div class="tr-step-row">
+                                    <div class="tr-steps">
+                                        <div class="tr-step red" data-step="1"><button class="tr-btn"><div class="tr-led"></div></button></div>
+                                        <div class="tr-step red" data-step="2"><button class="tr-btn"><div class="tr-led"></div></button></div>
+                                        <div class="tr-step red" data-step="3"><button class="tr-btn"><div class="tr-led"></div></button></div>
+                                        <div class="tr-step red" data-step="4"><button class="tr-btn"><div class="tr-led"></div></button></div>
+                                        <div class="tr-step orange" data-step="5"><button class="tr-btn"><div class="tr-led"></div></button></div>
+                                        <div class="tr-step orange" data-step="6"><button class="tr-btn"><div class="tr-led"></div></button></div>
+                                        <div class="tr-step orange" data-step="7"><button class="tr-btn"><div class="tr-led"></div></button></div>
+                                        <div class="tr-step orange" data-step="8"><button class="tr-btn"><div class="tr-led"></div></button></div>
+                                        <div class="tr-step yellow" data-step="9"><button class="tr-btn"><div class="tr-led"></div></button></div>
+                                        <div class="tr-step yellow" data-step="10"><button class="tr-btn"><div class="tr-led"></div></button></div>
+                                        <div class="tr-step yellow" data-step="11"><button class="tr-btn"><div class="tr-led"></div></button></div>
+                                        <div class="tr-step yellow" data-step="12"><button class="tr-btn"><div class="tr-led"></div></button></div>
+                                        <div class="tr-step white" data-step="13"><button class="tr-btn"><div class="tr-led"></div></button></div>
+                                        <div class="tr-step white" data-step="14"><button class="tr-btn"><div class="tr-led"></div></button></div>
+                                        <div class="tr-step white" data-step="15"><button class="tr-btn"><div class="tr-led"></div></button></div>
+                                        <div class="tr-step white" data-step="16"><button class="tr-btn"><div class="tr-led"></div></button></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="tr-col-right">
+                                <div class="tr-tap-box">
+                                    <span class="tr-label-mini">INTRO SET<br>FILL IN TRIGGER</span>
+                                    <button id="tr-tap" class="tr-big-btn gold small">TAP</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+
+            </div>
+        </div>
+    </div>
+    <script type="module" src="./app.js"></script>
+</body>
+</html>
