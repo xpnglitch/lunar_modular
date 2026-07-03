@@ -1,0 +1,1792 @@
+/**
+ * Harmonia — Main Application
+ * Wires everything together: math engine, synth, visuals, controls.
+ * The animation loop ensures honest coupling every frame.
+ */
+
+import { MathEngine } from './math/MathEngine.js';
+import { ScaleManager } from './audio/ScaleManager.js';
+import { SynthEngine } from './audio/SynthEngine.js';
+import { Renderer } from './visual/Renderer.js';
+import { FlowFieldMode } from './visual/FlowFieldMode.js';
+import { AttractorMode } from './visual/AttractorMode.js';
+import { WaveMode } from './visual/WaveMode.js';
+import { LissajousMode } from './visual/LissajousMode.js';
+import { PendulumMode } from './visual/PendulumMode.js';
+import { StringMode } from './visual/StringMode.js';
+import { CymaticsMode } from './visual/CymaticsMode.js';
+import { InterferenceMode } from './visual/InterferenceMode.js';
+import { LightningMode } from './visual/LightningMode.js';
+import { MoireMode } from './visual/MoireMode.js';
+import { ReactionDiffusionMode } from './visual/ReactionDiffusionMode.js';
+
+import { SolarSystemMode } from './visual/OrbitMode.js';
+import { Cycloid3DMode } from './visual/SpirographMode.js';
+import { NeuralFungalMode } from './visual/MyceliumMode.js';
+import { SpectralTunnelMode } from './visual/SpectrogramMode.js';
+
+import { MetaballsMode } from './visual/MetaballsMode.js';
+import { StardustMode } from './visual/StardustMode.js';
+import { PlasmaMode } from './visual/PlasmaMode.js';
+import { VortexMode } from './visual/VortexMode.js';
+import { HypercubeMode } from './visual/HypercubeMode.js';
+import { GlowWormMode } from './visual/GlowWormMode.js';
+import { NebulaMode } from './visual/NebulaMode.js';
+import { CrystalMode } from './visual/CrystalMode.js';
+
+import { BoidsMode } from './visual/BoidsMode.js';
+import { VoronoiMode } from './visual/VoronoiMode.js';
+import { KaleidoscopeMode } from './visual/KaleidoscopeMode.js';
+import { SuperformulaMode } from './visual/SuperformulaMode.js';
+import { MagneticMode } from './visual/MagneticMode.js';
+import { ConstellationMode } from './visual/ConstellationMode.js';
+import { WebMode } from './visual/WebMode.js';
+import { LSystemMode } from './visual/LSystemMode.js';
+
+// Infinite Horizon: Abstract Phenomena
+import { QuantumMode } from './visual/QuantumMode.js';
+import { GravityMode } from './visual/GravityMode.js';
+import { SolarFlareMode } from './visual/SolarFlareMode.js';
+import { FissionMode } from './visual/FissionMode.js';
+import { BiolumeMode } from './visual/BiolumeMode.js';
+import { InkWashMode } from './visual/InkWashMode.js';
+import { SupernovaMode } from './visual/SupernovaMode.js';
+import { AuraMode } from './visual/AuraMode.js';
+
+// Infinite Horizon: Digital Dreams
+import { VoxelsMode } from './visual/VoxelsMode.js';
+import { CyberSpireMode } from './visual/CyberSpireMode.js';
+import { ChromeMode } from './visual/ChromeMode.js';
+import { GlitchMode } from './visual/GlitchMode.js';
+import { TemporalMode } from './visual/TemporalMode.js';
+import { PhaseMode } from './visual/PhaseMode.js';
+import { CircuitMode } from './visual/CircuitMode.js';
+import { MandalaMode } from './visual/MandalaMode.js';
+import { FluidMode } from './visual/FluidMode.js';
+import { GravityAttractorMode } from './visual/GravityAttractorMode.js';
+import { SmokeMode } from './visual/SmokeMode.js';
+import { WaveformMode } from './visual/WaveformMode.js';
+import { TilingMode } from './visual/TilingMode.js';
+import { PolytopeMode } from './visual/PolytopeMode.js';
+import { RecursiveGridMode } from './visual/RecursiveGridMode.js';
+import { Spirograph3DMode } from './visual/Spirograph3DMode.js';
+import { FractalTreeMode } from './visual/FractalTreeMode.js';
+import { IsogridMode } from './visual/IsogridMode.js';
+import { HexagonMode } from './visual/HexagonMode.js';
+import { ParametricMode } from './visual/ParametricMode.js';
+import { VoronoiFlowMode } from './visual/VoronoiFlowMode.js';
+import { MoireSpiralMode } from './visual/MoireSpiralMode.js';
+import { TornadoMode } from './visual/TornadoMode.js';
+import { DigitalRainMode } from './visual/DigitalRainMode.js';
+import { FireFieldMode } from './visual/FireFieldMode.js';
+import { OceanWaveMode } from './visual/OceanWaveMode.js';
+import { GranularSandMode } from './visual/GranularSandMode.js';
+import { CrystalGrowthMode } from './visual/CrystalGrowthMode.js';
+import { CloudFieldMode } from './visual/CloudFieldMode.js';
+import { LavaFlowMode } from './visual/LavaFlowMode.js';
+import { WindStreakMode } from './visual/WindStreakMode.js';
+import { FractureMode } from './visual/FractureMode.js';
+import { DataStreamMode } from './visual/DataStreamMode.js';
+import { VectorFieldMode } from './visual/VectorFieldMode.js';
+import { GlitchGridMode } from './visual/GlitchGridMode.js';
+import { NeonPulseMode } from './visual/NeonPulseMode.js';
+import { RadarScanMode } from './visual/RadarScanMode.js';
+import { BitCrushMode } from './visual/BitCrushMode.js';
+import { CommandLogMode } from './visual/CommandLogMode.js';
+import { CircuitBoardMode } from './visual/CircuitBoardMode.js';
+import { SignalTraceMode } from './visual/SignalTraceMode.js';
+import { PixelSortMode } from './visual/PixelSortMode.js';
+import { OilSmearMode } from './visual/OilSmearMode.js';
+import { StipplePointMode } from './visual/StipplePointMode.js';
+import { SketchHatchMode } from './visual/SketchHatchMode.js';
+import { WatercolorWashMode } from './visual/WatercolorWashMode.js';
+import { ConstructivistMode } from './visual/ConstructivistMode.js';
+import { SurrealWarpMode } from './visual/SurrealWarpMode.js';
+import { MinimalistDotMode } from './visual/MinimalistDotMode.js';
+import { ImpressionistMode } from './visual/ImpressionistMode.js';
+import { PopArtMode } from './visual/PopArtMode.js';
+import { DripTraceMode } from './visual/DripTraceMode.js';
+import { BlackHoleMode } from './visual/BlackHoleMode.js';
+import { WormholeMode } from './visual/WormholeMode.js';
+import { PulsarBeamMode } from './visual/PulsarBeamMode.js';
+import { ExoplanetMode } from './visual/ExoplanetMode.js';
+import { AsteroidFieldMode } from './visual/AsteroidFieldMode.js';
+import { QuantumStringMode } from './visual/QuantumStringMode.js';
+import { StargateMode } from './visual/StargateMode.js';
+import { HyperdriveMode } from './visual/HyperdriveMode.js';
+import { NebulaGlowMode } from './visual/NebulaGlowMode.js';
+import { CometStreakMode } from './visual/CometStreakMode.js';
+import { GalacticSpiralMode } from './visual/GalacticSpiralMode.js';
+import { PinprickVoidMode } from './visual/PinprickVoidMode.js';
+import { ChronosMode } from './visual/ChronosMode.js';
+import { BumpTerrainMode } from './visual/BumpTerrainMode.js';
+import { AudioSurfaceMode } from './visual/AudioSurfaceMode.js';
+import { ShadowShapeMode } from './visual/ShadowShapeMode.js';
+import { ReliefMode } from './visual/ReliefMode.js';
+import { HeightmapMode } from './visual/HeightmapMode.js';
+
+import { PhysicsCore } from './math/PhysicsCore.js';
+import { PerspectiveCore } from './math/PerspectiveCore.js';
+import { CompassUI } from './ui/CompassUI.js';
+
+import { Keyboard } from './controls/Keyboard.js';
+import { Dial } from './controls/Dial.js';
+import { AIPlayer } from './ai/AIPlayer.js';
+import { MidiPlayer } from './audio/MidiPlayer.js';
+
+class Harmonia {
+    constructor() {
+        // Core systems
+        this.mathEngine = new MathEngine();
+        this.scaleManager = new ScaleManager();
+        this.synthEngine = new SynthEngine(this.mathEngine);
+
+        // Visual
+        this.renderer = new Renderer(document.getElementById('main-canvas'));
+        this.uiCanvas = document.getElementById('ui-canvas');
+        this.uiCtx = this.uiCanvas.getContext('2d');
+
+        // Modes
+        // Modes (Overhauls)
+        this.solarSystemMode = new SolarSystemMode(this.mathEngine);
+        this.cycloid3dMode = new Cycloid3DMode(this.mathEngine);
+        this.fungalMode = new NeuralFungalMode(this.mathEngine);
+        this.spectralMode = new SpectralTunnelMode(this.mathEngine);
+
+        // Modes (Classics)
+        this.flowFieldMode = new FlowFieldMode(this.mathEngine);
+        this.attractorMode = new AttractorMode(this.mathEngine);
+        this.waveMode = new WaveMode(this.mathEngine);
+        this.lissajousMode = new LissajousMode(this.mathEngine);
+        this.pendulumMode = new PendulumMode(this.mathEngine);
+        
+        // Restore pendulum audio hits
+        this._pendulumCooldowns = new Float64Array(50);
+        this.pendulumMode.setWallHitCallback((pendulumIndex, force) => {
+            if (!this.synthEngine.initialized) return;
+            const now = performance.now();
+            if (now - this._pendulumCooldowns[pendulumIndex] < 100) return;
+            this._pendulumCooldowns[pendulumIndex] = now;
+            const midi = this.scaleManager.indexToMidi(pendulumIndex);
+            const freq = this.scaleManager.midiToFrequency(midi);
+            const velocity = Math.min(0.5, force * 0.45);
+            const noteIdx = 1000 + pendulumIndex;
+            this.synthEngine.noteOff(noteIdx);
+            this.synthEngine.noteOn(noteIdx, freq, velocity);
+            setTimeout(() => this.synthEngine.noteOff(noteIdx), 200);
+        });
+
+        this.stringMode = new StringMode(this.mathEngine);
+        this.cymaticsMode = new CymaticsMode(this.mathEngine);
+        this.interferenceMode = new InterferenceMode(this.mathEngine);
+        this.lightningMode = new LightningMode(this.mathEngine);
+        this.moireMode = new MoireMode(this.mathEngine);
+        this.reactionDiffusionMode = new ReactionDiffusionMode(this.mathEngine);
+
+        // Modes (New)
+        this.metaballsMode = new MetaballsMode(this.mathEngine);
+        this.stardustMode = new StardustMode(this.mathEngine);
+        this.plasmaMode = new PlasmaMode(this.mathEngine);
+        this.vortexMode = new VortexMode(this.mathEngine);
+        this.hypercubeMode = new HypercubeMode(this.mathEngine);
+        this.glowwormMode = new GlowWormMode(this.mathEngine);
+        this.nebulaMode = new NebulaMode(this.mathEngine);
+        this.crystalMode = new CrystalMode(this.mathEngine);
+
+        // Modes (Updated Skeletons)
+        this.boidsMode = new BoidsMode(this.mathEngine);
+        this.voronoiMode = new VoronoiMode(this.mathEngine);
+        this.kaleidoscopeMode = new KaleidoscopeMode(this.mathEngine);
+        this.superformulaMode = new SuperformulaMode(this.mathEngine);
+        this.magneticMode = new MagneticMode(this.mathEngine);
+        this.constellationMode = new ConstellationMode(this.mathEngine);
+        this.webMode = new WebMode(this.mathEngine);
+        this.lsystemMode = new LSystemMode(this.mathEngine);
+
+        // Infinite Horizon: Abstract Phenomena
+        this.quantumMode = new QuantumMode(this.mathEngine);
+        this.gravityMode = new GravityMode(this.mathEngine);
+        this.solarFlareMode = new SolarFlareMode(this.mathEngine);
+        this.fissionMode = new FissionMode(this.mathEngine);
+        this.biolumeMode = new BiolumeMode(this.mathEngine);
+        this.inkWashMode = new InkWashMode(this.mathEngine);
+        this.supernovaMode = new SupernovaMode(this.mathEngine);
+        this.auraMode = new AuraMode(this.mathEngine);
+
+        // Infinite Horizon: Digital Dreams
+        this.voxelsMode = new VoxelsMode(this.mathEngine);
+        this.cyberSpireMode = new CyberSpireMode(this.mathEngine);
+        this.chromeMode = new ChromeMode(this.mathEngine);
+        this.glitchMode = new GlitchMode(this.mathEngine);
+        this.temporalMode = new TemporalMode(this.mathEngine);
+        this.phaseMode = new PhaseMode(this.mathEngine);
+        this.circuitMode = new CircuitMode(this.mathEngine);
+        this.mandalaMode = new MandalaMode(this.mathEngine);
+
+        // Ported Ultimate Modes
+        this.fluidMode = new FluidMode(this.mathEngine);
+        this.gravityAttractorMode = new GravityAttractorMode(this.mathEngine);
+        this.smokeMode = new SmokeMode(this.mathEngine);
+        this.waveformMode = new WaveformMode(this.mathEngine);
+        this.tilingMode = new TilingMode(this.mathEngine);
+        this.polytopeMode = new PolytopeMode(this.mathEngine);
+        this.recursiveGridMode = new RecursiveGridMode(this.mathEngine);
+        this.spirograph3DMode = new Spirograph3DMode(this.mathEngine);
+        this.fractalTreeMode = new FractalTreeMode(this.mathEngine);
+        this.isogridMode = new IsogridMode(this.mathEngine);
+        this.hexagonMode = new HexagonMode(this.mathEngine);
+        this.parametricMode = new ParametricMode(this.mathEngine);
+        this.voronoiFlowMode = new VoronoiFlowMode(this.mathEngine);
+        this.moireSpiralMode = new MoireSpiralMode(this.mathEngine);
+        this.tornadoMode = new TornadoMode(this.mathEngine);
+        this.digitalRainMode = new DigitalRainMode(this.mathEngine);
+        this.fireFieldMode = new FireFieldMode(this.mathEngine);
+        this.oceanWaveMode = new OceanWaveMode(this.mathEngine);
+        this.granularSandMode = new GranularSandMode(this.mathEngine);
+        this.crystalGrowthMode = new CrystalGrowthMode(this.mathEngine);
+        this.cloudFieldMode = new CloudFieldMode(this.mathEngine);
+        this.lavaFlowMode = new LavaFlowMode(this.mathEngine);
+        this.windStreakMode = new WindStreakMode(this.mathEngine);
+        this.fractureMode = new FractureMode(this.mathEngine);
+        this.dataStreamMode = new DataStreamMode(this.mathEngine);
+        this.vectorFieldMode = new VectorFieldMode(this.mathEngine);
+        this.glitchGridMode = new GlitchGridMode(this.mathEngine);
+        this.neonPulseMode = new NeonPulseMode(this.mathEngine);
+        this.radarScanMode = new RadarScanMode(this.mathEngine);
+        this.bitCrushMode = new BitCrushMode(this.mathEngine);
+        this.commandLogMode = new CommandLogMode(this.mathEngine);
+        this.circuitBoardMode = new CircuitBoardMode(this.mathEngine);
+        this.signalTraceMode = new SignalTraceMode(this.mathEngine);
+        this.pixelSortMode = new PixelSortMode(this.mathEngine);
+        this.oilSmearMode = new OilSmearMode(this.mathEngine);
+        this.stipplePointMode = new StipplePointMode(this.mathEngine);
+        this.sketchHatchMode = new SketchHatchMode(this.mathEngine);
+        this.watercolorWashMode = new WatercolorWashMode(this.mathEngine);
+        this.constructivistMode = new ConstructivistMode(this.mathEngine);
+        this.surrealWarpMode = new SurrealWarpMode(this.mathEngine);
+        this.minimalistDotMode = new MinimalistDotMode(this.mathEngine);
+        this.impressionistMode = new ImpressionistMode(this.mathEngine);
+        this.popArtMode = new PopArtMode(this.mathEngine);
+        this.dripTraceMode = new DripTraceMode(this.mathEngine);
+        this.blackHoleMode = new BlackHoleMode(this.mathEngine);
+        this.wormholeMode = new WormholeMode(this.mathEngine);
+        this.pulsarBeamMode = new PulsarBeamMode(this.mathEngine);
+        this.exoplanetMode = new ExoplanetMode(this.mathEngine);
+        this.asteroidFieldMode = new AsteroidFieldMode(this.mathEngine);
+        this.quantumStringMode = new QuantumStringMode(this.mathEngine);
+        this.stargateMode = new StargateMode(this.mathEngine);
+        this.hyperdriveMode = new HyperdriveMode(this.mathEngine);
+        this.nebulaGlowMode = new NebulaGlowMode(this.mathEngine);
+        this.cometStreakMode = new CometStreakMode(this.mathEngine);
+        this.galacticSpiralMode = new GalacticSpiralMode(this.mathEngine);
+        this.pinprickVoidMode = new PinprickVoidMode(this.mathEngine);
+        this.chronosMode = new ChronosMode(this.mathEngine);
+        this.bumpTerrainMode = new BumpTerrainMode(this.mathEngine);
+        this.audioSurfaceMode = new AudioSurfaceMode(this.mathEngine);
+        this.shadowShapeMode = new ShadowShapeMode(this.mathEngine);
+        this.reliefMode = new ReliefMode(this.mathEngine);
+        this.heightmapMode = new HeightmapMode(this.mathEngine);
+
+        // Compass UI
+        this.compassUI = new CompassUI(this.mathEngine);
+        this.diveAlpha = 0; // Transition state
+
+        this.currentMode = this.solarSystemMode;
+        this.currentModeName = 'solarsystem';
+        this.renderer.setMode(this.solarSystemMode);
+
+        // Controls
+        this.keyboard = new Keyboard(this.scaleManager, this.synthEngine, this.mathEngine);
+        this.keyboard.setVisualMode(this.solarSystemMode);
+        this.dial = new Dial(this.mathEngine);
+
+        // AI Player
+        this.aiPlayer = new AIPlayer(this.scaleManager, this.synthEngine, this.mathEngine);
+        this.aiPlayer.setVisualMode(this.solarSystemMode);
+
+        // MIDI Player
+        this.midiPlayer = new MidiPlayer(this.synthEngine);
+        this.midiPlayer.onNoteOn = (noteInfo) => {
+            // Register note with math engine (for visual coupling)
+            this.mathEngine.noteOn(noteInfo.midi, noteInfo.frequency, noteInfo.velocity);
+            
+            // Notify the current visual mode
+            if (this.currentMode && this.currentMode.onNoteOn) {
+                this.currentMode.onNoteOn({ ...noteInfo, index: noteInfo.midi });
+            }
+
+            // Feed to AI player for accompaniment
+            if (this.aiPlayer && this.aiPlayer.isPlaying) {
+                this.aiPlayer.onUserNote(noteInfo.midi, noteInfo.velocity);
+            }
+        };
+        this.midiPlayer.onNoteOff = (midi) => {
+            this.mathEngine.noteOff(midi);
+            if (this.currentMode && this.currentMode.onNoteOff) {
+                this.currentMode.onNoteOff(midi);
+            }
+        };
+
+        // Wire keyboard to AI player for accompaniment
+        this.keyboard.aiPlayer = this.aiPlayer;
+
+        // Recording state
+        this.isRecording = false;
+        this.mediaRecorder = null;
+        this.recordedChunks = [];
+        this.recordStartTime = 0;
+
+        // Showcase mode
+        this.showcaseActive = false;
+        this.showcaseIndex = 0;
+        this.showcaseTimer = 0;
+        this.showcaseDuration = 8; // seconds per mode
+        this.showcaseTransitionAlpha = 0;
+        this.showcaseModeName = '';
+        this.showcaseActiveNotes = [];
+        this.showcaseNoteTimer = 0;
+        this.showcaseDialTimer = 0;
+        this.showcaseDialInterval = 3;
+
+        this.showcaseModeList = [
+            { key: 'flowField', label: 'Flow Fields' },
+            { key: 'attractor', label: 'Strange Attractor' },
+            { key: 'wave', label: 'Waveforms' },
+            { key: 'lissajous', label: 'Lissajous' },
+            { key: 'pendulum', label: 'Pendulum' },
+            { key: 'string', label: 'Strings' },
+            { key: 'cymatics', label: 'Cymatics' },
+            { key: 'interference', label: 'Interference' },
+            { key: 'lightning', label: 'Lightning' },
+            { key: 'moire', label: 'Moiré' },
+            { key: 'reactionDiffusion', label: 'Reaction-Diffusion' },
+            { key: 'solarsystem', label: 'Solar System' },
+            { key: 'cycloid3d', label: 'Cycloid 3D' },
+            { key: 'spectral', label: 'Spectral Tunnel' },
+            { key: 'fungal', label: 'Neural Fungal' },
+            { key: 'quantum', label: 'Quantum' },
+            { key: 'gravity', label: 'Gravity' },
+            { key: 'solarflare', label: 'Solar Flare' },
+            { key: 'fission', label: 'Fission' },
+            { key: 'biolume', label: 'Bioluminescence' },
+            { key: 'inkwash', label: 'Ink Wash' },
+            { key: 'supernova', label: 'Supernova' },
+            { key: 'aura', label: 'Aurora' },
+            { key: 'voxels', label: 'Voxels' },
+            { key: 'cyberspire', label: 'Cyber Spire' },
+            { key: 'chrome', label: 'Chrome' },
+            { key: 'glitch', label: 'Glitch' },
+            { key: 'temporal', label: 'Temporal' },
+            { key: 'phase', label: 'Phase' },
+            { key: 'circuit', label: 'Circuit' },
+            { key: 'mandala', label: 'Mandala' },
+            { key: 'metaballs', label: 'Metaballs' },
+            { key: 'stardust', label: 'Stardust' },
+            { key: 'plasma', label: 'Plasma' },
+            { key: 'vortex', label: 'Vortex' },
+            { key: 'hypercube', label: 'Hypercube' },
+            { key: 'glowworm', label: 'GlowWorm' },
+            { key: 'nebula', label: 'Nebula' },
+            { key: 'crystal', label: 'Crystal' },
+            { key: 'boids', label: 'Boids' },
+            { key: 'voronoi', label: 'Voronoi' },
+            { key: 'kaleidoscope', label: 'Kaleidoscope' },
+            { key: 'superformula', label: 'Superformula' },
+            { key: 'magnetic', label: 'Magnetic' },
+            { key: 'constellation', label: 'Constellation' },
+            { key: 'web', label: 'Neural Web' },
+            { key: 'lsystem', label: 'L-System' },
+            { key: 'fluid', label: 'Fluid' },
+            { key: 'gravity-attractor', label: 'Gravity' },
+            { key: 'smoke', label: 'Smoke' },
+            { key: 'waveform', label: 'Waveform' },
+            { key: 'tiling', label: 'Tiling' },
+            { key: 'polytope', label: 'Polytope' },
+            { key: 'recursivegrid', label: 'RecursiveGrid' },
+            { key: 'spirograph3d', label: 'Spirograph3D' },
+            { key: 'fractaltree', label: 'FractalTree' },
+            { key: 'isogrid', label: 'Isogrid' },
+            { key: 'hexagon', label: 'Hexagon' },
+            { key: 'parametric', label: 'Parametric' },
+            { key: 'voronoiflow', label: 'VoronoiFlow' },
+            { key: 'moirespiral', label: 'MoireSpiral' },
+            { key: 'tornado', label: 'Tornado' },
+            { key: 'digitalrain', label: 'DigitalRain' },
+            { key: 'firefield', label: 'FireField' },
+            { key: 'oceanwave', label: 'OceanWave' },
+            { key: 'granularsand', label: 'GranularSand' },
+            { key: 'crystalgrowth', label: 'CrystalGrowth' },
+            { key: 'cloudfield', label: 'CloudField' },
+            { key: 'lavaflow', label: 'LavaFlow' },
+            { key: 'windstreak', label: 'WindStreak' },
+            { key: 'fracture', label: 'Fracture' },
+            { key: 'datastream', label: 'DataStream' },
+            { key: 'vectorfield', label: 'VectorField' },
+            { key: 'glitchgrid', label: 'GlitchGrid' },
+            { key: 'neonpulse', label: 'NeonPulse' },
+            { key: 'radarscan', label: 'RadarScan' },
+            { key: 'bitcrush', label: 'BitCrush' },
+            { key: 'commandlog', label: 'CommandLog' },
+            { key: 'circuitboard', label: 'CircuitBoard' },
+            { key: 'signaltrace', label: 'SignalTrace' },
+            { key: 'pixelsort', label: 'PixelSort' },
+            { key: 'oilsmear', label: 'OilSmear' },
+            { key: 'stipplepoint', label: 'StipplePoint' },
+            { key: 'sketchhatch', label: 'SketchHatch' },
+            { key: 'watercolorwash', label: 'WatercolorWash' },
+            { key: 'constructivist', label: 'Constructivist' },
+            { key: 'surrealwarp', label: 'SurrealWarp' },
+            { key: 'minimalistdot', label: 'MinimalistDot' },
+            { key: 'impressionist', label: 'Impressionist' },
+            { key: 'popart', label: 'PopArt' },
+            { key: 'driptrace', label: 'DripTrace' },
+            { key: 'blackhole', label: 'BlackHole' },
+            { key: 'wormhole', label: 'Wormhole' },
+            { key: 'pulsarbeam', label: 'PulsarBeam' },
+            { key: 'exoplanet', label: 'Exoplanet' },
+            { key: 'asteroidfield', label: 'AsteroidField' },
+            { key: 'quantumstring', label: 'QuantumString' },
+            { key: 'stargate', label: 'Stargate' },
+            { key: 'hyperdrive', label: 'Hyperdrive' },
+            { key: 'nebulaglow', label: 'NebulaGlow' },
+            { key: 'cometstreak', label: 'CometStreak' },
+            { key: 'galacticspiral', label: 'GalacticSpiral' },
+            { key: 'pinprickvoid', label: 'PinprickVoid' },
+            { key: 'chronos', label: 'Chronos' },
+        ];
+
+        // Timing
+        this.lastTime = 0;
+        this.isRunning = false;
+
+        // Initialize
+        this._setupUI();
+        this._setupDialInput();
+        this._resizeUICanvas();
+        window.addEventListener('resize', () => this._resizeUICanvas());
+
+        // Build on-screen keyboard
+        this._buildOnScreenKeyboard();
+
+        // Start the loop
+        this.start();
+    }
+
+    /**
+     * Setup UI event handlers
+     */
+    _setupUI() {
+        // Mode selector
+        document.querySelectorAll('.mode-pill').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const mode = e.target.dataset.mode;
+                this._switchMode(mode);
+                // Update active pill
+                document.querySelectorAll('.mode-pill').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                // Update bottom bar mode label
+                const label = document.getElementById('current-mode-label');
+                if (label) label.textContent = e.target.textContent;
+            });
+        });
+
+        // Mode selector popup toggle
+        const modeToggleBtn = document.getElementById('mode-toggle-btn');
+        const modeSelector = document.getElementById('mode-selector');
+        if (modeToggleBtn && modeSelector) {
+            modeToggleBtn.addEventListener('click', () => {
+                modeSelector.classList.toggle('hidden');
+                modeToggleBtn.classList.toggle('active', !modeSelector.classList.contains('hidden'));
+            });
+            // Click outside to close
+            document.addEventListener('click', (e) => {
+                if (!modeSelector.contains(e.target) && !modeToggleBtn.contains(e.target)) {
+                    modeSelector.classList.add('hidden');
+                    modeToggleBtn.classList.remove('active');
+                }
+            });
+        }
+
+        // Volume slider
+        const volumeSlider = document.getElementById('volume-slider');
+        if (volumeSlider) {
+            volumeSlider.addEventListener('input', (e) => {
+                const vol = parseFloat(e.target.value) / 100;
+                if (this.synth && this.synth.master) {
+                    this.synth.master.gain.value = vol * 0.65; // 0-0.65 range
+                }
+            });
+        }
+
+        // Scale selector
+        document.getElementById('scale-select').addEventListener('change', (e) => {
+            this.scaleManager.setScale(e.target.value);
+        });
+
+        // Root note selector
+        document.getElementById('root-select').addEventListener('change', (e) => {
+            this.scaleManager.setRoot(e.target.value);
+        });
+
+        // Record button
+        document.getElementById('record-btn').addEventListener('click', () => {
+            if (this.isRecording) {
+                this._stopRecording();
+            } else {
+                this._startRecording();
+            }
+        });
+
+        // Showcase button
+        document.getElementById('showcase-btn').addEventListener('click', () => {
+            this._toggleShowcase();
+        });
+
+        // Keyboard shortcut: Escape stops showcase
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.showcaseActive) {
+                this._stopShowcase();
+            }
+        });
+
+        // Pendulum sound presets — short, crisp, no echo
+        this.pendulumSounds = {
+            bells: {
+                oscType: 'sine', oscType2: 'triangle', oscMix: 0.3,
+                attack: 0.005, decay: 0.25, sustain: 0.0, release: 0.1,
+                filterBase: 2500, filterRange: 8000, detuneBase: 0, detuneRange: 8,
+            },
+            marimba: {
+                oscType: 'sine', oscType2: 'sine', oscMix: 0.5,
+                attack: 0.003, decay: 0.2, sustain: 0.0, release: 0.08,
+                filterBase: 3000, filterRange: 6000, detuneBase: 0, detuneRange: 3,
+            },
+            glass: {
+                oscType: 'sine', oscType2: 'square', oscMix: 0.08,
+                attack: 0.001, decay: 0.35, sustain: 0.0, release: 0.12,
+                filterBase: 4000, filterRange: 10000, detuneBase: 7, detuneRange: 12,
+            },
+            pluck: {
+                oscType: 'sawtooth', oscType2: 'triangle', oscMix: 0.25,
+                attack: 0.001, decay: 0.12, sustain: 0.0, release: 0.05,
+                filterBase: 5000, filterRange: 8000, detuneBase: 0, detuneRange: 5,
+            },
+            pad: {
+                oscType: 'sine', oscType2: 'triangle', oscMix: 0.4,
+                attack: 0.05, decay: 0.3, sustain: 0.1, release: 0.15,
+                filterBase: 800, filterRange: 3000, detuneBase: 5, detuneRange: 15,
+            },
+            metallic: {
+                oscType: 'square', oscType2: 'sawtooth', oscMix: 0.2,
+                attack: 0.001, decay: 0.2, sustain: 0.0, release: 0.08,
+                filterBase: 3500, filterRange: 9000, detuneBase: 12, detuneRange: 30,
+            },
+            organ: {
+                oscType: 'sine', oscType2: 'square', oscMix: 0.35,
+                attack: 0.02, decay: 0.1, sustain: 0.1, release: 0.08,
+                filterBase: 2000, filterRange: 5000, detuneBase: 0, detuneRange: 4,
+            },
+            sub: {
+                oscType: 'sine', oscType2: 'sine', oscMix: 0.5,
+                attack: 0.01, decay: 0.25, sustain: 0.0, release: 0.1,
+                filterBase: 400, filterRange: 1500, detuneBase: 0, detuneRange: 2,
+            },
+        };
+
+        // Sound preset selector
+        document.getElementById('sound-select').addEventListener('change', (e) => {
+            const preset = this.pendulumSounds[e.target.value];
+            if (preset) {
+                this.synthEngine.presets.pendulum = preset;
+            }
+        });
+
+        // Pendulum count slider
+        const countSlider = document.getElementById('pendulum-count');
+        const countLabel = document.getElementById('pendulum-count-value');
+        if (countSlider) {
+            countSlider.addEventListener('input', (e) => {
+                const count = parseInt(e.target.value);
+                countLabel.textContent = count;
+                this.pendulumMode.pendulumMath.setNumPendulums(count);
+                this.pendulumMode.resize(this.pendulumMode.width, this.pendulumMode.height);
+            });
+        }
+
+        // Pendulum angle slider
+        const angleSlider = document.getElementById('pendulum-angle');
+        const angleLabel = document.getElementById('pendulum-angle-value');
+        if (angleSlider) {
+            angleSlider.addEventListener('input', (e) => {
+                const angle = parseInt(e.target.value);
+                angleLabel.textContent = angle;
+                this.pendulumMode.setAngle(angle / 100);
+            });
+        }
+
+        // Pendulum reset button
+        const resetBtn = document.getElementById('pendulum-reset-btn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                this.pendulumMode.reset();
+            });
+        }
+
+        // Lightning intensity slider
+        const lightningSlider = document.getElementById('lightning-intensity');
+        const lightningLabel = document.getElementById('lightning-intensity-value');
+        if (lightningSlider) {
+            lightningSlider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value);
+                lightningLabel.textContent = val;
+                this.lightningMode.setIntensity(val);
+            });
+        }
+
+        // Mycelium clear button
+        const myceliumClearBtn = document.getElementById('mycelium-clear-btn');
+        if (myceliumClearBtn) {
+            myceliumClearBtn.addEventListener('click', () => {
+                this.myceliumMode.clear();
+            });
+        }
+
+        // RD preset selector
+        const rdPreset = document.getElementById('rd-preset');
+        if (rdPreset) {
+            rdPreset.addEventListener('change', (e) => {
+                this.reactionDiffusionMode.setPreset(e.target.value);
+            });
+        }
+
+        // Fractal zoom speed slider
+        const fractalZoomSlider = document.getElementById('fractal-zoom-speed');
+        const fractalZoomLabel = document.getElementById('fractal-zoom-value');
+        if (fractalZoomSlider) {
+            fractalZoomSlider.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                fractalZoomLabel.textContent = val.toFixed(1);
+                this.fractalMode.setZoomSpeed(val);
+            });
+        }
+
+        // AI Player controls
+        const aiToggle = document.getElementById('ai-toggle');
+        const aiSliders = document.getElementById('ai-sliders');
+        if (aiToggle) {
+            aiToggle.addEventListener('click', async () => {
+                if (this.aiPlayer.isPlaying) {
+                    this.aiPlayer.stop();
+                    aiToggle.classList.remove('active');
+                    aiSliders.classList.add('hidden');
+                } else {
+                    aiToggle.classList.add('loading');
+                    await this.aiPlayer.play();
+                    aiToggle.classList.remove('loading');
+                    aiToggle.classList.add('active');
+                    aiSliders.classList.remove('hidden');
+                }
+            });
+        }
+
+        const aiTempSlider = document.getElementById('ai-temperature');
+        const aiTempLabel = document.getElementById('ai-temp-value');
+        if (aiTempSlider) {
+            aiTempSlider.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                aiTempLabel.textContent = val.toFixed(1);
+                this.aiPlayer.setTemperature(val);
+            });
+        }
+
+        const aiSpeedSlider = document.getElementById('ai-speed');
+        const aiSpeedLabel = document.getElementById('ai-speed-value');
+        if (aiSpeedSlider) {
+            aiSpeedSlider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value);
+                aiSpeedLabel.textContent = val;
+                this.aiPlayer.setSpeed(val);
+            });
+        }
+
+        // MIDI Player UI
+        const midiToggle = document.getElementById('midi-toggle');
+        const midiPanel = document.getElementById('midi-panel');
+        const midiPlayBtn = document.getElementById('midi-play-btn');
+        const midiSelect = document.getElementById('midi-select');
+        const midiStatus = document.getElementById('midi-status');
+
+        if (midiToggle) {
+            midiToggle.addEventListener('click', () => {
+                midiPanel.classList.toggle('hidden');
+                midiToggle.classList.toggle('active');
+            });
+        }
+
+        if (midiPlayBtn) {
+            midiPlayBtn.addEventListener('click', () => {
+                if (this.midiPlayer.playing) {
+                    this.midiPlayer.stop();
+                    midiPlayBtn.textContent = 'Play';
+                    midiStatus.textContent = 'Stopped';
+                } else {
+                    this.synthEngine.init().then(() => {
+                        this.synthEngine.resume();
+                        this.midiPlayer.loadPiece(midiSelect.value);
+                        this.midiPlayer.play();
+                        midiPlayBtn.textContent = 'Stop';
+                        midiStatus.textContent = 'Playing...';
+                    });
+                }
+            });
+        }
+
+        if (midiSelect) {
+            midiSelect.addEventListener('change', () => {
+                if (this.midiPlayer.playing) {
+                    this.midiPlayer.stop();
+                    this.midiPlayer.loadPiece(midiSelect.value);
+                    this.midiPlayer.play();
+                }
+            });
+        }
+    }
+
+    /**
+     * Setup Dial mouse/touch input on UI canvas
+     */
+    _setupDialInput() {
+        const canvas = this.uiCanvas;
+
+        const getPos = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        };
+
+        canvas.addEventListener('mousedown', (e) => {
+            const pos = getPos(e);
+            if (this.dial.onPointerDown(pos.x, pos.y)) {
+                e.preventDefault();
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            const pos = getPos(e);
+            this.dial.onPointerMove(pos.x, pos.y);
+        });
+
+        canvas.addEventListener('mouseup', () => this.dial.onPointerUp());
+        canvas.addEventListener('mouseleave', () => this.dial.onPointerUp());
+
+        // Touch events
+        canvas.addEventListener('touchstart', (e) => {
+            const pos = getPos(e);
+            if (this.dial.onPointerDown(pos.x, pos.y)) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', (e) => {
+            const pos = getPos(e);
+            this.dial.onPointerMove(pos.x, pos.y);
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', () => this.dial.onPointerUp());
+
+        // Scroll wheel
+        canvas.addEventListener('wheel', (e) => {
+            const pos = getPos(e);
+            if (this.dial.onWheel(pos.x, pos.y, e.deltaY)) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+    }
+
+    /**
+     * Resize UI canvas
+     */
+    _resizeUICanvas() {
+        const dpr = window.devicePixelRatio || 1;
+        this.uiCanvas.width = window.innerWidth * dpr;
+        this.uiCanvas.height = window.innerHeight * dpr;
+        this.uiCanvas.style.width = window.innerWidth + 'px';
+        this.uiCanvas.style.height = window.innerHeight + 'px';
+        this.uiCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    /**
+     * Build the on-screen keyboard HTML
+     */
+    _buildOnScreenKeyboard() {
+        const container = document.getElementById('onscreen-keyboard');
+        const rows = [
+            ['z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/'],
+            ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';'],
+            ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+        ];
+
+        const wrapper = document.createElement('div');
+        wrapper.style.display = 'flex';
+        wrapper.style.flexDirection = 'column-reverse'; // Bottom row first visually
+
+        for (const row of rows) {
+            const rowEl = document.createElement('div');
+            rowEl.className = 'key-row';
+            for (const key of row) {
+                const keyEl = document.createElement('div');
+                keyEl.className = 'key';
+                keyEl.dataset.key = key;
+                keyEl.id = `key-${key === ';' ? 'semicolon' : key === ',' ? 'comma' : key === '.' ? 'period' : key === '/' ? 'slash' : key}`;
+                keyEl.textContent = key.toUpperCase();
+                rowEl.appendChild(keyEl);
+            }
+            wrapper.appendChild(rowEl);
+        }
+
+        container.appendChild(wrapper);
+    }
+
+    /**
+     * Switch visualization/audio mode
+     */
+    _switchMode(modeName) {
+        this.currentModeName = modeName;
+
+        switch (modeName) {
+            case 'solarsystem':
+                this.currentMode = this.solarSystemMode;
+                break;
+            case 'cycloid3d':
+                this.currentMode = this.cycloid3dMode;
+                break;
+            case 'spectral':
+                this.currentMode = this.spectralMode;
+                // Init audio on mode switch (user gesture from click)
+                this.synthEngine.init().then(() => this.synthEngine.resume());
+                break;
+            case 'fungal':
+                this.currentMode = this.fungalMode;
+                break;
+            case 'metaballs':
+                this.currentMode = this.metaballsMode;
+                break;
+            case 'stardust':
+                this.currentMode = this.stardustMode;
+                break;
+            case 'plasma':
+                this.currentMode = this.plasmaMode;
+                break;
+            case 'vortex':
+                this.currentMode = this.vortexMode;
+                break;
+            case 'hypercube':
+                this.currentMode = this.hypercubeMode;
+                break;
+            case 'glowworm':
+                this.currentMode = this.glowwormMode;
+                break;
+            case 'nebula':
+                this.currentMode = this.nebulaMode;
+                break;
+            case 'crystal':
+                this.currentMode = this.crystalMode;
+                break;
+
+            // Classics 
+            case 'flowField':
+                this.currentMode = this.flowFieldMode;
+                break;
+            case 'attractor':
+                this.currentMode = this.attractorMode;
+                break;
+            case 'wave':
+                this.currentMode = this.waveMode;
+                break;
+            case 'lissajous':
+                this.currentMode = this.lissajousMode;
+                break;
+            case 'pendulum':
+                this.currentMode = this.pendulumMode;
+                this.synthEngine.init().then(() => this.synthEngine.resume());
+                break;
+            case 'string':
+                this.currentMode = this.stringMode;
+                break;
+            case 'cymatics':
+                this.currentMode = this.cymaticsMode;
+                break;
+            case 'interference':
+                this.currentMode = this.interferenceMode;
+                break;
+            case 'lightning':
+                this.currentMode = this.lightningMode;
+                break;
+            case 'moire':
+                this.currentMode = this.moireMode;
+                break;
+            case 'reactionDiffusion':
+                this.currentMode = this.reactionDiffusionMode;
+                break;
+
+            case 'boids':
+                this.currentMode = this.boidsMode;
+                break;
+            case 'constellation':
+                this.currentMode = this.constellationMode;
+                break;
+            case 'kaleidoscope':
+                this.currentMode = this.kaleidoscopeMode;
+                break;
+            case 'lsystem':
+                this.currentMode = this.lsystemMode;
+                break;
+            case 'magnetic':
+                this.currentMode = this.magneticMode;
+                break;
+            case 'superformula':
+                this.currentMode = this.superformulaMode;
+                break;
+            case 'voronoi':
+                this.currentMode = this.voronoiMode;
+                break;
+            case 'web':
+                this.currentMode = this.webMode;
+                break;
+
+            // Infinite Horizon: Abstract Phenomena
+            case 'quantum': this.currentMode = this.quantumMode; break;
+            case 'gravity': this.currentMode = this.gravityMode; break;
+            case 'solarflare': this.currentMode = this.solarFlareMode; break;
+            case 'fission': this.currentMode = this.fissionMode; break;
+            case 'biolume': this.currentMode = this.biolumeMode; break;
+            case 'inkwash': this.currentMode = this.inkWashMode; break;
+            case 'supernova': this.currentMode = this.supernovaMode; break;
+            case 'aura': this.currentMode = this.auraMode; break;
+
+            // Infinite Horizon: Digital Dreams
+            case 'voxels': this.currentMode = this.voxelsMode; break;
+            case 'cyberspire': this.currentMode = this.cyberSpireMode; break;
+            case 'chrome': this.currentMode = this.chromeMode; break;
+            case 'glitch': this.currentMode = this.glitchMode; break;
+            case 'temporal': this.currentMode = this.temporalMode; break;
+            case 'phase': this.currentMode = this.phaseMode; break;
+            case 'circuit': this.currentMode = this.circuitMode; break;
+            case 'mandala': this.currentMode = this.mandalaMode; break;
+
+            // Ported Modes
+            case 'fluid': this.currentMode = this.fluidMode; break;
+            case 'gravity-attractor': this.currentMode = this.gravityAttractorMode; break;
+            case 'smoke': this.currentMode = this.smokeMode; break;
+            case 'waveform': this.currentMode = this.waveformMode; break;
+            case 'tiling': this.currentMode = this.tilingMode; break;
+            case 'polytope': this.currentMode = this.polytopeMode; break;
+            case 'recursivegrid': this.currentMode = this.recursiveGridMode; break;
+            case 'spirograph3d': this.currentMode = this.spirograph3DMode; break;
+            case 'fractaltree': this.currentMode = this.fractalTreeMode; break;
+            case 'isogrid': this.currentMode = this.isogridMode; break;
+            case 'hexagon': this.currentMode = this.hexagonMode; break;
+            case 'parametric': this.currentMode = this.parametricMode; break;
+            case 'voronoiflow': this.currentMode = this.voronoiFlowMode; break;
+            case 'moirespiral': this.currentMode = this.moireSpiralMode; break;
+            case 'tornado': this.currentMode = this.tornadoMode; break;
+            case 'digitalrain': this.currentMode = this.digitalRainMode; break;
+            case 'firefield': this.currentMode = this.fireFieldMode; break;
+            case 'oceanwave': this.currentMode = this.oceanWaveMode; break;
+            case 'granularsand': this.currentMode = this.granularSandMode; break;
+            case 'crystalgrowth': this.currentMode = this.crystalGrowthMode; break;
+            case 'cloudfield': this.currentMode = this.cloudFieldMode; break;
+            case 'lavaflow': this.currentMode = this.lavaFlowMode; break;
+            case 'windstreak': this.currentMode = this.windStreakMode; break;
+            case 'fracture': this.currentMode = this.fractureMode; break;
+            case 'datastream': this.currentMode = this.dataStreamMode; break;
+            case 'vectorfield': this.currentMode = this.vectorFieldMode; break;
+            case 'glitchgrid': this.currentMode = this.glitchGridMode; break;
+            case 'neonpulse': this.currentMode = this.neonPulseMode; break;
+            case 'radarscan': this.currentMode = this.radarScanMode; break;
+            case 'bitcrush': this.currentMode = this.bitCrushMode; break;
+            case 'commandlog': this.currentMode = this.commandLogMode; break;
+            case 'circuitboard': this.currentMode = this.circuitBoardMode; break;
+            case 'signaltrace': this.currentMode = this.signalTraceMode; break;
+            case 'pixelsort': this.currentMode = this.pixelSortMode; break;
+            case 'oilsmear': this.currentMode = this.oilSmearMode; break;
+            case 'stipplepoint': this.currentMode = this.stipplePointMode; break;
+            case 'sketchhatch': this.currentMode = this.sketchHatchMode; break;
+            case 'watercolorwash': this.currentMode = this.watercolorWashMode; break;
+            case 'constructivist': this.currentMode = this.constructivistMode; break;
+            case 'surrealwarp': this.currentMode = this.surrealWarpMode; break;
+            case 'minimalistdot': this.currentMode = this.minimalistDotMode; break;
+            case 'impressionist': this.currentMode = this.impressionistMode; break;
+            case 'popart': this.currentMode = this.popArtMode; break;
+            case 'driptrace': this.currentMode = this.dripTraceMode; break;
+            case 'blackhole': this.currentMode = this.blackHoleMode; break;
+            case 'wormhole': this.currentMode = this.wormholeMode; break;
+            case 'pulsarbeam': this.currentMode = this.pulsarBeamMode; break;
+            case 'exoplanet': this.currentMode = this.exoplanetMode; break;
+            case 'asteroidfield': this.currentMode = this.asteroidFieldMode; break;
+            case 'quantumstring': this.currentMode = this.quantumStringMode; break;
+            case 'stargate': this.currentMode = this.stargateMode; break;
+            case 'hyperdrive': this.currentMode = this.hyperdriveMode; break;
+            case 'nebulaglow': this.currentMode = this.nebulaGlowMode; break;
+            case 'cometstreak': this.currentMode = this.cometStreakMode; break;
+            case 'galacticspiral': this.currentMode = this.galacticSpiralMode; break;
+            case 'pinprickvoid': this.currentMode = this.pinprickVoidMode; break;
+            case 'chronos': this.currentMode = this.chronosMode; break;
+            case 'bumpterrain': this.currentMode = this.bumpTerrainMode; break;
+            case 'audiosurface': this.currentMode = this.audioSurfaceMode; break;
+            case 'shadowshape': this.currentMode = this.shadowShapeMode; break;
+            case 'relief': this.currentMode = this.reliefMode; break;
+            case 'heightmap': this.currentMode = this.heightmapMode; break;
+        }
+
+        this.renderer.setMode(this.currentMode);
+        this.keyboard.setVisualMode(this.currentMode);
+        this.aiPlayer.setVisualMode(this.currentMode);
+        this.synthEngine.setMode(modeName);
+
+        // Show/hide fungal-specific controls
+        const fungalCtrls = ['mycelium-clear-control'];
+        for (const id of fungalCtrls) {
+            const el = document.getElementById(id);
+            if (el) el.style.display = modeName === 'fungal' ? '' : 'none';
+        }
+
+        // Show/hide pendulum-specific controls
+        const pendulumCtrls = ['sound-control', 'pendulum-count-control', 'pendulum-angle-control', 'pendulum-reset-control'];
+        for (const id of pendulumCtrls) {
+            const el = document.getElementById(id);
+            if (el) el.style.display = modeName === 'pendulum' ? '' : 'none';
+        }
+
+        // Show/hide lightning-specific controls
+        const lightningCtrls = ['lightning-intensity-control'];
+        for (const id of lightningCtrls) {
+            const el = document.getElementById(id);
+            if (el) el.style.display = modeName === 'lightning' ? '' : 'none';
+        }
+
+        // Show/hide RD-specific controls
+        const rdCtrls = ['rd-preset-control'];
+        for (const id of rdCtrls) {
+            const el = document.getElementById(id);
+            if (el) el.style.display = modeName === 'reactionDiffusion' ? '' : 'none';
+        }
+
+        // Stop showcase on manual mode switch (not showcase-driven ones)
+        if (this.showcaseActive && !this._showcaseSwitching) {
+            this._stopShowcase();
+        }
+    }
+
+    /**
+     * Toggle showcase mode on/off
+     */
+    _toggleShowcase() {
+        if (this.showcaseActive) {
+            this._stopShowcase();
+        } else {
+            this._startShowcase();
+        }
+    }
+
+    _startShowcase() {
+        this.showcaseActive = true;
+        this._showcaseSwitching = false;
+        this.showcaseIndex = 0;
+        this.showcaseTimer = 0;
+        this.showcaseTransitionAlpha = 1;
+        this.showcaseNoteTimer = 0;
+        this.showcaseDialTimer = 0;
+        this.showcaseDialInterval = 2 + Math.random() * 2;
+        this.showcaseActiveNotes = [];
+
+        // Init audio (needs user gesture — usually provided by the button click)
+        this.synthEngine.init().then(() => {
+            this.synthEngine.resume();
+        });
+
+        // Switch to first mode
+        this._showcaseSwitchToIndex(0);
+
+        // Update button
+        const btn = document.getElementById('showcase-btn');
+        if (btn) btn.classList.add('active');
+
+        // Hide start hint
+        const hint = document.getElementById('start-hint');
+        if (hint) hint.classList.add('hidden');
+    }
+
+    _stopShowcase() {
+        // Release any lingering notes
+        for (const n of (this.showcaseActiveNotes || [])) {
+            this.synthEngine.noteOff(n.index);
+            this.mathEngine.noteOff(n.index);
+        }
+        this.showcaseActiveNotes = [];
+
+        this.showcaseActive = false;
+        this.showcaseTransitionAlpha = 0;
+
+        const btn = document.getElementById('showcase-btn');
+        if (btn) btn.classList.remove('active');
+    }
+
+    _showcaseSwitchToIndex(idx) {
+        this.showcaseIndex = idx;
+        const mode = this.showcaseModeList[idx];
+        this.showcaseModeName = mode.label;
+        this.showcaseTransitionAlpha = 1;
+
+        // Guard: tell _switchMode not to kill showcase
+        this._showcaseSwitching = true;
+        this._switchMode(mode.key);
+        this._showcaseSwitching = false;
+    }
+
+    _advanceShowcase() {
+        // Release current notes before switching
+        for (const n of this.showcaseActiveNotes) {
+            this.synthEngine.noteOff(n.index);
+            this.mathEngine.noteOff(n.index);
+            if (this.currentMode && this.currentMode.onNoteOff) {
+                this.currentMode.onNoteOff(n.index);
+            }
+        }
+        this.showcaseActiveNotes = [];
+
+        const nextIdx = (this.showcaseIndex + 1) % this.showcaseModeList.length;
+        this._showcaseSwitchToIndex(nextIdx);
+
+        // Also randomize dial on mode change
+        this.dial.targetValue = 0.2 + Math.random() * 0.6;
+    }
+
+    /**
+     * Generate demo notes during showcase — fires from the render loop
+     */
+    _showcasePlayNotes(dt) {
+        // Skip note generation if MIDI playback (piano) is already active
+        if (this.midiPlayer && this.midiPlayer.playing) return;
+
+        this.showcaseNoteTimer += dt;
+
+        // --- Dial drift: randomize dial value every few seconds ---
+        this.showcaseDialTimer += dt;
+        if (this.showcaseDialTimer >= this.showcaseDialInterval) {
+            this.showcaseDialTimer = 0;
+            this.showcaseDialInterval = 2 + Math.random() * 3;
+            // Smoothly drift to a new random value
+            this.dial.targetValue = 0.15 + Math.random() * 0.7;
+        }
+
+        // Fire a note every ~600ms
+        if (this.showcaseNoteTimer < 0.6) return;
+        this.showcaseNoteTimer = 0;
+
+        // Release old notes (keep max 5 active)
+        while (this.showcaseActiveNotes.length > 5) {
+            const old = this.showcaseActiveNotes.shift();
+            this.synthEngine.noteOff(old.index);
+            this.mathEngine.noteOff(old.index);
+            if (this.currentMode && this.currentMode.onNoteOff) {
+                this.currentMode.onNoteOff(old.index);
+            }
+        }
+
+        // Pick a random note from the current scale
+        const noteIndex = 2000 + Math.floor(Math.random() * 30);
+        const scaleKeys = this.scaleManager.keyLayout;
+        const randomKey = scaleKeys[Math.floor(Math.random() * scaleKeys.length)];
+        const noteInfo = this.scaleManager.getNoteInfo(randomKey);
+
+        if (noteInfo) {
+            const velocity = 0.4 + Math.random() * 0.4;
+
+            this.synthEngine.noteOn(noteIndex, noteInfo.frequency, velocity);
+            this.mathEngine.noteOn(noteIndex, noteInfo.frequency, velocity);
+
+            if (this.currentMode && this.currentMode.onNoteOn) {
+                this.currentMode.onNoteOn({ ...noteInfo, index: noteIndex, velocity });
+            }
+
+            this.showcaseActiveNotes.push({ index: noteIndex });
+
+            // Mix of staccato (300ms) and sustained (800-2000ms) holds
+            const isSustained = Math.random() < 0.4;
+            const holdTime = isSustained ? 800 + Math.random() * 1200 : 300;
+
+            setTimeout(() => {
+                this.synthEngine.noteOff(noteIndex);
+                this.mathEngine.noteOff(noteIndex);
+                if (this.currentMode && this.currentMode.onNoteOff) {
+                    this.currentMode.onNoteOff(noteIndex);
+                }
+                this.showcaseActiveNotes = this.showcaseActiveNotes.filter(n => n.index !== noteIndex);
+            }, holdTime);
+        }
+    }
+
+    /**
+     * Start recording
+     */
+    async _startRecording() {
+        try {
+            await this.synthEngine.init();
+            const canvas = this.renderer.getCanvas();
+            const audioCtx = this.synthEngine.getAudioContext();
+
+            // Capture canvas stream
+            const canvasStream = canvas.captureStream(30);
+
+            // Capture audio
+            const audioDest = audioCtx.createMediaStreamDestination();
+            this.synthEngine.analyser.connect(audioDest);
+
+            // Combine streams
+            const combinedStream = new MediaStream([
+                ...canvasStream.getVideoTracks(),
+                ...audioDest.stream.getAudioTracks(),
+            ]);
+
+            this.recordedChunks = [];
+            this.mediaRecorder = new MediaRecorder(combinedStream, {
+                mimeType: 'video/webm;codecs=vp9',
+                videoBitsPerSecond: 5000000,
+            });
+
+            this.mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) this.recordedChunks.push(e.data);
+            };
+
+            this.mediaRecorder.onstop = () => {
+                const blob = new Blob(this.recordedChunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `harmonia-${Date.now()}.webm`;
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+
+            this.mediaRecorder.start(100);
+            this.isRecording = true;
+            this.recordStartTime = Date.now();
+            document.getElementById('record-btn').classList.add('recording');
+            document.getElementById('record-time').classList.remove('hidden');
+
+            // Update timer
+            this._updateRecordTimer();
+        } catch (err) {
+            console.warn('Recording not supported:', err);
+        }
+    }
+
+    /**
+     * Stop recording
+     */
+    _stopRecording() {
+        if (this.mediaRecorder && this.isRecording) {
+            this.mediaRecorder.stop();
+            this.isRecording = false;
+            document.getElementById('record-btn').classList.remove('recording');
+            document.getElementById('record-time').classList.add('hidden');
+        }
+    }
+
+    /**
+     * Update recording timer display
+     */
+    _updateRecordTimer() {
+        if (!this.isRecording) return;
+        const elapsed = Math.floor((Date.now() - this.recordStartTime) / 1000);
+        const mins = Math.floor(elapsed / 60);
+        const secs = elapsed % 60;
+        document.getElementById('record-time').textContent =
+            `${mins}:${secs.toString().padStart(2, '0')}`;
+        requestAnimationFrame(() => this._updateRecordTimer());
+    }
+
+    /**
+     * Main animation loop
+     */
+    _loop(timestamp) {
+        if (!this.isRunning) return;
+
+        const dt = this.lastTime ? Math.min((timestamp - this.lastTime) / 1000, 0.05) : 0.016;
+        this.lastTime = timestamp;
+
+        // 1. Update math engine (smooth params)
+        this.mathEngine.update(dt);
+
+        // 2. Update dial
+        this.dial.update(dt);
+
+        // 3. Get audio modulation from current visual mode (HONEST COUPLING)
+        let audioMod = null;
+        if (this.currentMode.getAudioModulation) {
+            audioMod = this.currentMode.getAudioModulation();
+        }
+
+        // 4. Update synth from math (math modulates the synth)
+        this.synthEngine.updateFromMath(audioMod);
+
+        // 5. Render visualization
+        this.renderer.render(this.mathEngine, dt);
+
+        // 6. Render UI overlay (dial, on-screen keyboard, Compass)
+        this.uiCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+        this.dial.render(this.uiCtx, window.innerWidth, window.innerHeight, this.mathEngine);
+        
+        // Update Compass
+        if (this.compassUI) {
+            this.compassUI.update(this.uiCtx, dt, this.mathEngine);
+        }
+
+        // 7. Update on-screen keyboard highlights
+        this._updateOnScreenKeyboard();
+
+        // 8. The Dive (Infinite Horizon Transition)
+        if (this.diveAlpha > 0) {
+            this.uiCtx.fillStyle = `rgba(255, 255, 255, ${this.diveAlpha})`;
+            this.uiCtx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+            this.diveAlpha *= 0.85;
+        }
+
+        // 9. Showcase mode
+        if (this.showcaseActive) {
+            this.showcaseTimer += dt;
+
+            // Advance to next mode when timer expires
+            if (this.showcaseTimer >= this.showcaseDuration) {
+                this.showcaseTimer = 0;
+                this._advanceShowcase();
+            }
+
+            // Generate demo notes
+            this._showcasePlayNotes(dt);
+
+            // Draw mode name overlay
+            const uiCtx = this.uiCtx;
+            const sw = window.innerWidth;
+            const sh = window.innerHeight;
+
+            // Fade the transition alpha
+            if (this.showcaseTransitionAlpha > 0) {
+        }
+
+        this.renderer.setMode(this.currentMode);
+        this.keyboard.setVisualMode(this.currentMode);
+        this.aiPlayer.setVisualMode(this.currentMode);
+        this.synthEngine.setMode(modeName);
+
+        // Show/hide fungal-specific controls
+        const fungalCtrls = ['mycelium-clear-control'];
+        for (const id of fungalCtrls) {
+            const el = document.getElementById(id);
+            if (el) el.style.display = modeName === 'fungal' ? '' : 'none';
+        }
+
+        // Show/hide pendulum-specific controls
+        const pendulumCtrls = ['sound-control', 'pendulum-count-control', 'pendulum-angle-control', 'pendulum-reset-control'];
+        for (const id of pendulumCtrls) {
+            const el = document.getElementById(id);
+            if (el) el.style.display = modeName === 'pendulum' ? '' : 'none';
+        }
+
+        // Show/hide lightning-specific controls
+        const lightningCtrls = ['lightning-intensity-control'];
+        for (const id of lightningCtrls) {
+            const el = document.getElementById(id);
+            if (el) el.style.display = modeName === 'lightning' ? '' : 'none';
+        }
+
+        // Show/hide RD-specific controls
+        const rdCtrls = ['rd-preset-control'];
+        for (const id of rdCtrls) {
+            const el = document.getElementById(id);
+            if (el) el.style.display = modeName === 'reactionDiffusion' ? '' : 'none';
+        }
+
+        // Stop showcase on manual mode switch (not showcase-driven ones)
+        if (this.showcaseActive && !this._showcaseSwitching) {
+            this._stopShowcase();
+        }
+    }
+
+    /**
+     * Toggle showcase mode on/off
+     */
+    _toggleShowcase() {
+        if (this.showcaseActive) {
+            this._stopShowcase();
+        } else {
+            this._startShowcase();
+        }
+    }
+
+    _startShowcase() {
+        this.showcaseActive = true;
+        this._showcaseSwitching = false;
+        this.showcaseIndex = 0;
+        this.showcaseTimer = 0;
+        this.showcaseTransitionAlpha = 1;
+        this.showcaseNoteTimer = 0;
+        this.showcaseDialTimer = 0;
+        this.showcaseDialInterval = 2 + Math.random() * 2;
+        this.showcaseActiveNotes = [];
+
+        // Init audio (needs user gesture — usually provided by the button click)
+        this.synthEngine.init().then(() => {
+            this.synthEngine.resume();
+        });
+
+        // Switch to first mode
+        this._showcaseSwitchToIndex(0);
+
+        // Update button
+        const btn = document.getElementById('showcase-btn');
+        if (btn) btn.classList.add('active');
+
+        // Hide start hint
+        const hint = document.getElementById('start-hint');
+        if (hint) hint.classList.add('hidden');
+    }
+
+    _stopShowcase() {
+        // Release any lingering notes
+        for (const n of (this.showcaseActiveNotes || [])) {
+            this.synthEngine.noteOff(n.index);
+            this.mathEngine.noteOff(n.index);
+        }
+        this.showcaseActiveNotes = [];
+
+        this.showcaseActive = false;
+        this.showcaseTransitionAlpha = 0;
+
+        const btn = document.getElementById('showcase-btn');
+        if (btn) btn.classList.remove('active');
+    }
+
+    _showcaseSwitchToIndex(idx) {
+        this.showcaseIndex = idx;
+        const mode = this.showcaseModeList[idx];
+        this.showcaseModeName = mode.label;
+        this.showcaseTransitionAlpha = 1;
+
+        // Guard: tell _switchMode not to kill showcase
+        this._showcaseSwitching = true;
+        this._switchMode(mode.key);
+        this._showcaseSwitching = false;
+    }
+
+    _advanceShowcase() {
+        // Release current notes before switching
+        for (const n of this.showcaseActiveNotes) {
+            this.synthEngine.noteOff(n.index);
+            this.mathEngine.noteOff(n.index);
+            if (this.currentMode && this.currentMode.onNoteOff) {
+                this.currentMode.onNoteOff(n.index);
+            }
+        }
+        this.showcaseActiveNotes = [];
+
+        const nextIdx = (this.showcaseIndex + 1) % this.showcaseModeList.length;
+        this._showcaseSwitchToIndex(nextIdx);
+
+        // Also randomize dial on mode change
+        this.dial.targetValue = 0.2 + Math.random() * 0.6;
+    }
+
+    /**
+     * Generate demo notes during showcase — fires from the render loop
+     */
+    _showcasePlayNotes(dt) {
+        // Skip note generation if MIDI playback (piano) is already active
+        if (this.midiPlayer && this.midiPlayer.playing) return;
+
+        this.showcaseNoteTimer += dt;
+
+        // --- Dial drift: randomize dial value every few seconds ---
+        this.showcaseDialTimer += dt;
+        if (this.showcaseDialTimer >= this.showcaseDialInterval) {
+            this.showcaseDialTimer = 0;
+            this.showcaseDialInterval = 2 + Math.random() * 3;
+            // Smoothly drift to a new random value
+            this.dial.targetValue = 0.15 + Math.random() * 0.7;
+        }
+
+        // Fire a note every ~600ms
+        if (this.showcaseNoteTimer < 0.6) return;
+        this.showcaseNoteTimer = 0;
+
+        // Release old notes (keep max 5 active)
+        while (this.showcaseActiveNotes.length > 5) {
+            const old = this.showcaseActiveNotes.shift();
+            this.synthEngine.noteOff(old.index);
+            this.mathEngine.noteOff(old.index);
+            if (this.currentMode && this.currentMode.onNoteOff) {
+                this.currentMode.onNoteOff(old.index);
+            }
+        }
+
+        // Pick a random note from the current scale
+        const noteIndex = 2000 + Math.floor(Math.random() * 30);
+        const scaleKeys = this.scaleManager.keyLayout;
+        const randomKey = scaleKeys[Math.floor(Math.random() * scaleKeys.length)];
+        const noteInfo = this.scaleManager.getNoteInfo(randomKey);
+
+        if (noteInfo) {
+            const velocity = 0.4 + Math.random() * 0.4;
+
+            this.synthEngine.noteOn(noteIndex, noteInfo.frequency, velocity);
+            this.mathEngine.noteOn(noteIndex, noteInfo.frequency, velocity);
+
+            if (this.currentMode && this.currentMode.onNoteOn) {
+                this.currentMode.onNoteOn({ ...noteInfo, index: noteIndex, velocity });
+            }
+
+            this.showcaseActiveNotes.push({ index: noteIndex });
+
+            // Mix of staccato (300ms) and sustained (800-2000ms) holds
+            const isSustained = Math.random() < 0.4;
+            const holdTime = isSustained ? 800 + Math.random() * 1200 : 300;
+
+            setTimeout(() => {
+                this.synthEngine.noteOff(noteIndex);
+                this.mathEngine.noteOff(noteIndex);
+                if (this.currentMode && this.currentMode.onNoteOff) {
+                    this.currentMode.onNoteOff(noteIndex);
+                }
+                this.showcaseActiveNotes = this.showcaseActiveNotes.filter(n => n.index !== noteIndex);
+            }, holdTime);
+        }
+    }
+
+    /**
+     * Start recording
+     */
+    async _startRecording() {
+        try {
+            await this.synthEngine.init();
+            const canvas = this.renderer.getCanvas();
+            const audioCtx = this.synthEngine.getAudioContext();
+
+            // Capture canvas stream
+            const canvasStream = canvas.captureStream(30);
+
+            // Capture audio
+            const audioDest = audioCtx.createMediaStreamDestination();
+            this.synthEngine.analyser.connect(audioDest);
+
+            // Combine streams
+            const combinedStream = new MediaStream([
+                ...canvasStream.getVideoTracks(),
+                ...audioDest.stream.getAudioTracks(),
+            ]);
+
+            this.recordedChunks = [];
+            this.mediaRecorder = new MediaRecorder(combinedStream, {
+                mimeType: 'video/webm;codecs=vp9',
+                videoBitsPerSecond: 5000000,
+            });
+
+            this.mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) this.recordedChunks.push(e.data);
+            };
+
+            this.mediaRecorder.onstop = () => {
+                const blob = new Blob(this.recordedChunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `harmonia-${Date.now()}.webm`;
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+
+            this.mediaRecorder.start(100);
+            this.isRecording = true;
+            this.recordStartTime = Date.now();
+            document.getElementById('record-btn').classList.add('recording');
+            document.getElementById('record-time').classList.remove('hidden');
+
+            // Update timer
+            this._updateRecordTimer();
+        } catch (err) {
+            console.warn('Recording not supported:', err);
+        }
+    }
+
+    /**
+     * Stop recording
+     */
+    _stopRecording() {
+        if (this.mediaRecorder && this.isRecording) {
+            this.mediaRecorder.stop();
+            this.isRecording = false;
+            document.getElementById('record-btn').classList.remove('recording');
+            document.getElementById('record-time').classList.add('hidden');
+        }
+    }
+
+    /**
+     * Update recording timer display
+     */
+    _updateRecordTimer() {
+        if (!this.isRecording) return;
+        const elapsed = Math.floor((Date.now() - this.recordStartTime) / 1000);
+        const mins = Math.floor(elapsed / 60);
+        const secs = elapsed % 60;
+        document.getElementById('record-time').textContent =
+            `${mins}:${secs.toString().padStart(2, '0')}`;
+        requestAnimationFrame(() => this._updateRecordTimer());
+    }
+
+    /**
+     * Main animation loop
+     */
+    _loop(timestamp) {
+        if (!this.isRunning) return;
+
+        const dt = this.lastTime ? Math.min((timestamp - this.lastTime) / 1000, 0.05) : 0.016;
+        this.lastTime = timestamp;
+
+        // 1. Update math engine (smooth params)
+        this.mathEngine.update(dt);
+
+        // 2. Update dial
+        this.dial.update(dt);
+
+        // 3. Get audio modulation from current visual mode (HONEST COUPLING)
+        let audioMod = null;
+        if (this.currentMode.getAudioModulation) {
+            audioMod = this.currentMode.getAudioModulation();
+        }
+
+        // 4. Update synth from math (math modulates the synth)
+        this.synthEngine.updateFromMath(audioMod);
+
+        // 5. Render visualization
+        this.renderer.render(this.mathEngine, dt);
+
+        // 6. Render UI overlay (dial, on-screen keyboard, Compass)
+        this.uiCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+        this.dial.render(this.uiCtx, window.innerWidth, window.innerHeight, this.mathEngine);
+        
+        // Update Compass
+        if (this.compassUI) {
+            this.compassUI.update(this.uiCtx, dt, this.mathEngine);
+        }
+
+        // 7. Update on-screen keyboard highlights
+        this._updateOnScreenKeyboard();
+
+        // 8. The Dive (Infinite Horizon Transition)
+        if (this.diveAlpha > 0) {
+            this.uiCtx.fillStyle = `rgba(255, 255, 255, ${this.diveAlpha})`;
+            this.uiCtx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+            this.diveAlpha *= 0.85;
+        }
+
+        // 9. Showcase mode
+        if (this.showcaseActive) {
+            this.showcaseTimer += dt;
+
+            // Advance to next mode when timer expires
+            if (this.showcaseTimer >= this.showcaseDuration) {
+                this.showcaseTimer = 0;
+                this._advanceShowcase();
+            }
+
+            // Generate demo notes
+            this._showcasePlayNotes(dt);
+
+            // Draw mode name overlay
+            const uiCtx = this.uiCtx;
+            const sw = window.innerWidth;
+            const sh = window.innerHeight;
+
+            // Fade the transition alpha
+            if (this.showcaseTransitionAlpha > 0) {
+                this.showcaseTransitionAlpha *= 0.97;
+                if (this.showcaseTransitionAlpha < 0.01) this.showcaseTransitionAlpha = 0;
+            }
+
+            // Mode name label (bottom center)
+            const nameAlpha = Math.max(0.15, this.showcaseTransitionAlpha);
+            const modeIndex = this.showcaseIndex + 1;
+            const modeTotal = this.showcaseModeList.length;
+
+            uiCtx.save();
+            uiCtx.textAlign = 'center';
+            uiCtx.textBaseline = 'bottom';
+
+            // Mode name
+            uiCtx.font = '600 32px Inter, system-ui, sans-serif';
+            uiCtx.fillStyle = `rgba(255, 255, 255, ${0.3 + nameAlpha * 0.7})`;
+            uiCtx.shadowColor = 'rgba(0,0,0,0.6)';
+            uiCtx.shadowBlur = 8;
+            uiCtx.fillText(this.showcaseModeName, sw / 2, sh - 80);
+
+            // Counter
+            uiCtx.font = '400 14px Inter, system-ui, sans-serif';
+            uiCtx.fillStyle = `rgba(200, 200, 200, ${0.2 + nameAlpha * 0.4})`;
+            uiCtx.fillText(`${modeIndex} / ${modeTotal}`, sw / 2, sh - 56);
+
+            // Progress bar
+            const barW = 200;
+            const barH = 2;
+            const barX = (sw - barW) / 2;
+            const barY = sh - 48;
+            const progress = this.showcaseTimer / this.showcaseDuration;
+            uiCtx.fillStyle = `rgba(255, 255, 255, 0.08)`;
+            uiCtx.fillRect(barX, barY, barW, barH);
+            const hue = this.mathEngine.get('colorHue');
+            uiCtx.fillStyle = `hsla(${hue}, 70%, 60%, ${0.3 + nameAlpha * 0.4})`;
+            uiCtx.fillRect(barX, barY, barW * progress, barH);
+
+            uiCtx.shadowBlur = 0;
+            uiCtx.restore();
+        }
+
+        requestAnimationFrame((t) => this._loop(t));
+    }
+
+    /**
+     * Update on-screen keyboard key highlights
+     */
+    _updateOnScreenKeyboard() {
+        const states = this.keyboard.getKeyStates();
+        for (const [key, state] of states) {
+            const id = `key-${key === ';' ? 'semicolon' : key === ',' ? 'comma' : key === '.' ? 'period' : key === '/' ? 'slash' : key}`;
+            const el = document.getElementById(id);
+            if (el) {
+                if (state.active) {
+                    el.classList.add('active');
+                    // Tint active key with current color
+                    const hue = this.mathEngine.get('colorHue');
+                    el.style.background = `hsla(${hue}, 70%, 50%, 0.25)`;
+                    el.style.borderColor = `hsla(${hue}, 70%, 50%, 0.4)`;
+                    el.style.boxShadow = `0 0 12px hsla(${hue}, 70%, 50%, 0.2)`;
+                } else {
+                    el.classList.remove('active');
+                    el.style.background = '';
+                    el.style.borderColor = '';
+                    el.style.boxShadow = '';
+                }
+            }
+        }
+    }
+
+    start() {
+        this.isRunning = true;
+        requestAnimationFrame((t) => this._loop(t));
+    }
+}
+
+// Launch
+window.addEventListener('DOMContentLoaded', () => {
+    window.harmonia = new Harmonia();
+});
